@@ -1,0 +1,4 @@
+name: Fiscalismia Monitoring Pipeline
+
+on:
+  workflow_dispatch:
