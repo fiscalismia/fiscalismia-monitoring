@@ -1,5 +1,5 @@
 # fiscalismia-monitoring
-Prometheus &amp; Grafana Dashboard running as a container, ingesting metrics from ingress (Loadbalancer) and egress (NAT-Gateway) servers to monitor access and traffic flow.
+Prometheus & Grafana Dashboard running as a container, ingesting metrics from ingress (Loadbalancer) and egress (NAT-Gateway) servers as well as Demo, Frontend and Backend Instances.
 
 
 ## todo

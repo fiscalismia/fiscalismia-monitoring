@@ -1,4 +1,85 @@
 name: Fiscalismia Monitoring Pipeline
 
+# on:
+#   push:
+#     branches:
+#       - main
+#       - pipeline_testing
+#   pull_request:
+#     branches:
+#       - main
+
 on:
   workflow_dispatch:
+
+jobs:
+  build-and-publish-image:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      actions: read
+      packages: write # to publish to ghcr.io
+
+    steps:
+    - name: Checkout SCM
+      uses: actions/checkout@v5
+      # https://github.com/actions/checkout
+
+    - name: AutoIncrement Version
+      run: |
+        echo "BUILD_VERSION=0.9.1" >> $GITHUB_ENV
+
+    - name: Set Buildah Build Timestamp
+      shell: bash
+      run: |
+        # Store the current time in ISO 8601 format (required by OCI spec)
+        echo "BUILD_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+
+    - name: Buildah Image Creation
+      id: build-image
+      uses: redhat-actions/buildah-build@v2.13
+      # https://github.com/redhat-actions/buildah-build/releases
+      with:
+        image: fiscalismia-monitoring
+        tags: latest ${{ env.BUILD_VERSION }}
+        containerfiles: |
+          ./Dockerfile
+        # build-args: |
+        #   some_arg=some_value
+        labels: |
+          org.opencontainers.image.version=${{ env.BUILD_VERSION }}
+          org.opencontainers.image.created=${{ env.BUILD_TIMESTAMP }}
+          org.opencontainers.image.source=${{ github.repositoryUrl }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.description=Prometheus & Grafana Dashboard running as a container, ingesting metrics from ingress (Loadbalancer) and egress (NAT-Gateway) servers as well as Demo, Frontend and Backend Instances
+          org.opencontainers.image.licenses=MIT
+
+    - name: Log in to Github Container Registry
+      if: github.event_name == 'push'
+      uses: redhat-actions/podman-login@v1.7
+      # https://github.com/redhat-actions/podman-login/releases
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push to Github Container Registry
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      id: push-to-ghcr
+      uses: redhat-actions/push-to-registry@v2.8
+      # https://github.com/redhat-actions/push-to-registry/releases
+      with:
+        image: ${{ steps.build-image.outputs.image }}
+        tags: ${{ steps.build-image.outputs.tags }}
+        registry: ghcr.io/fiscalismia
+
+    - name: Print image url
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: echo "Image pushed to ${{ steps.push-to-ghcr.outputs.registry-paths }}"
+
+    - name: Print build success (PR)
+      if: github.event_name == 'pull_request'
+      run: |
+        echo "Build successful for PR"
+        echo "Image would be: ${{ steps.build-image.outputs.image }}:${{ steps.build-image.outputs.tags }}"
