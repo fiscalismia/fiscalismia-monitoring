@@ -36,15 +36,15 @@ jobs:
         # Store the current time in ISO 8601 format (required by OCI spec)
         echo "BUILD_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
 
-    - name: Buildah Image Creation
-      id: build-image
+    - name: Buildah Image Creation - Prometheus
+      id: build-image-prometheus
       uses: redhat-actions/buildah-build@v2.13
       # https://github.com/redhat-actions/buildah-build/releases
       with:
-        image: fiscalismia-monitoring
+        image: fiscalismia-monitoring-prometheus
         tags: latest ${{ env.BUILD_VERSION }}
         containerfiles: |
-          ./Dockerfile
+          ./Dockerfile.Prometheus
         # build-args: |
         #   some_arg=some_value
         labels: |
@@ -52,7 +52,26 @@ jobs:
           org.opencontainers.image.created=${{ env.BUILD_TIMESTAMP }}
           org.opencontainers.image.source=${{ github.repositoryUrl }}
           org.opencontainers.image.revision=${{ github.sha }}
-          org.opencontainers.image.description=Prometheus & Grafana Dashboard running as a container, ingesting metrics from ingress (Loadbalancer) and egress (NAT-Gateway) servers as well as Demo, Frontend and Backend Instances
+          org.opencontainers.image.description=Prometheus running as a container, ingesting metrics from ingress (Loadbalancer) and egress (NAT-Gateway) servers as well as Demo, Frontend and Backend Instances
+          org.opencontainers.image.licenses=MIT
+
+    - name: Buildah Image Creation - Grafana
+      id: build-image-grafana
+      uses: redhat-actions/buildah-build@v2.13
+      # https://github.com/redhat-actions/buildah-build/releases
+      with:
+        image: fiscalismia-monitoring-prometheus
+        tags: latest ${{ env.BUILD_VERSION }}
+        containerfiles: |
+          ./Dockerfile.Grafana
+        # build-args: |
+        #   some_arg=some_value
+        labels: |
+          org.opencontainers.image.version=${{ env.BUILD_VERSION }}
+          org.opencontainers.image.created=${{ env.BUILD_TIMESTAMP }}
+          org.opencontainers.image.source=${{ github.repositoryUrl }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.description=Grafana Dashboard running as a container, ingesting metrics from ingress (Loadbalancer) and egress (NAT-Gateway) servers as well as Demo, Frontend and Backend Instances
           org.opencontainers.image.licenses=MIT
 
     - name: Log in to Github Container Registry
@@ -64,22 +83,35 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Push to Github Container Registry
+    - name: Push Prometheus to Github Container Registry
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      id: push-to-ghcr
+      id: push-to-ghcr-prometheus
       uses: redhat-actions/push-to-registry@v2.8
       # https://github.com/redhat-actions/push-to-registry/releases
       with:
-        image: ${{ steps.build-image.outputs.image }}
-        tags: ${{ steps.build-image.outputs.tags }}
+        image: ${{ steps.build-image-prometheus.outputs.image }}
+        tags: ${{ steps.build-image-prometheus.outputs.tags }}
         registry: ghcr.io/fiscalismia
 
-    - name: Print image url
+    - name: Push Grafana to Github Container Registry
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: echo "Image pushed to ${{ steps.push-to-ghcr.outputs.registry-paths }}"
+      id: push-to-ghcr-grafana
+      uses: redhat-actions/push-to-registry@v2.8
+      # https://github.com/redhat-actions/push-to-registry/releases
+      with:
+        image: ${{ steps.build-image-grafana.outputs.image }}
+        tags: ${{ steps.build-image-grafana.outputs.tags }}
+        registry: ghcr.io/fiscalismia
+
+    - name: Print image urls
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        echo "Image pushed to ${{ steps.push-to-ghcr-prometheus.outputs.registry-paths }}"
+        echo "Image pushed to ${{ steps.push-to-ghcr-grafana.outputs.registry-paths }}"
 
     - name: Print build success (PR)
       if: github.event_name == 'pull_request'
       run: |
         echo "Build successful for PR"
-        echo "Image would be: ${{ steps.build-image.outputs.image }}:${{ steps.build-image.outputs.tags }}"
+        echo "Prometheus Image would be: ${{ steps.build-image-prometheus.outputs.image }}:${{ steps.build-image-prometheus.outputs.tags }}"
+        echo "Grafana Image would be: ${{ steps.build-image-grafana.outputs.image }}:${{ steps.build-image-grafana.outputs.tags }}"
