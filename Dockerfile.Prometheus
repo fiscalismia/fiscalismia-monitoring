@@ -1,0 +1,56 @@
+# =============================================================================
+# Fiscalismia Prometheus Docker Image
+# Production-grade, security-hardened Alpine-based image
+# =============================================================================
+FROM prom/prometheus:v2.48.1
+
+# Build arguments for OCI labels
+ARG BUILD_VERSION=0.9.0
+ARG BUILD_TIMESTAMP
+
+# OCI Image Labels
+LABEL org.opencontainers.image.title="Fiscalismia Prometheus"
+LABEL org.opencontainers.image.description="Prometheus monitoring for Fiscalismia infrastructure"
+LABEL org.opencontainers.image.version="${BUILD_VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_TIMESTAMP}"
+LABEL org.opencontainers.image.vendor="Fiscalismia"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# Switch to root for setup (prom/prometheus runs as nobody by default)
+USER root
+
+# Create prometheus user and group with specific UID/GID for consistency
+RUN addgroup -g 65534 -S prometheus 2>/dev/null || true && \
+    adduser -u 65534 -S -G prometheus -h /prometheus prometheus 2>/dev/null || true
+
+# Create required directories with proper permissions
+RUN mkdir -p /prometheus/data /etc/prometheus && \
+    chown -R nobody:nobody /prometheus /etc/prometheus
+
+# Copy Prometheus configuration
+COPY --chown=nobody:nobody config/prometheus.yml /etc/prometheus/prometheus.yml
+
+# Switch to unprivileged user (prometheus image uses nobody:nobody)
+USER nobody
+
+# Expose Prometheus port
+EXPOSE 9090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1
+
+# Data directory
+VOLUME ["/prometheus/data"]
+
+# Entrypoint is inherited from base image
+# Default command with security and performance flags
+CMD ["--config.file=/etc/prometheus/prometheus.yml", \
+     "--storage.tsdb.path=/prometheus/data", \
+     "--storage.tsdb.retention.time=30d", \
+     "--storage.tsdb.retention.size=10GB", \
+     "--web.console.libraries=/usr/share/prometheus/console_libraries", \
+     "--web.console.templates=/usr/share/prometheus/consoles", \
+     "--web.enable-lifecycle", \
+     "--web.enable-admin-api", \
+     "--log.level=info"]

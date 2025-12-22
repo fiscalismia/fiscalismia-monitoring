@@ -1,0 +1,36 @@
+Create a production grade best practice and security hardened Docker compose setup to deploy Prometheus & Grafana on a monitoring instance.
+
+It will receive tcp logs from haproxy loadbalancer over private network production interfaces 
+nginx logs from frontend
+nginx logs from backend
+nginx logs from demo frontend
+nginx logs from demo backend
+nginx logs from demo database
+egress https logs from nat-gateway
+
+Let us start with only networking logs and skip performance metrics. Simply write into the readme file what a best practice performance metric monitoring technology would be to export to prometheus.
+
+These are my instances with domains attached:
+| `fiscalismia.com` | Frontend | `172.24.0.3` | Main Fiscalismia Frontend |
+| `backend.fiscalismia.com` | Backend | `172.24.0.4` | Main REST API backend |
+| `demo.fiscalismia.com` | Demo | `172.20.0.2` | Encapsulated Demo instance (frontend) |
+| `backend.demo.fiscalismia.com` | Demo | `172.20.0.2` | Encapsulated Demo instance (backend) |
+| `monitoring.fiscalismia.com` | Monitoring | `172.24.0.2` | Prometheus & Grafana dashboard |
+
+The instance will have a tls certificate in paths in 
+/etc/letsencrypt/live/monitoring.fiscalismia.com/fullchain.pem
+/etc/letsencrypt/live/monitoring.fiscalismia.com/privkey.pem
+and they will be mounted into the containers during runtime to not leak them in the Dockerfile.
+
+I do not know if supervisord would be used to run prometheus, if so, follow the conventions of my backend supervisord setup. If it is not best practice to run with supervisord skip it.
+The Dockerfiles can be built based on low footprint base images, ideally with unpriviledged user and on alpine, if available officially and named Dockerfile.Grafana and Dockerfile.Prometheus
+Follow my nginx setup structure of my express backend and react frontend attached.
+
+The docker compose should create networks for the containers to run in since my instance has nftables firewall exceptions only for the podman networks with cidr ranges 10.89.0.0/24 | 10.89.1.0/24 | 10.89.2.0/24 | 10.89.3.0/24
+See my demo dockerfile for conventions, also on security hardening.
+
+This instance is routable via haproxy loadbalancer at | `monitoring.fiscalismia.com` | Monitoring | `172.24.0.2` | Prometheus & Grafana dashboard |
+
+I will write the deployment pipeline myself, just write the command into README on how to start the docker compose file and if any .env file with secrets is required, create that .env file and reference it in the docker compose file
+
+List all files that i need to copy to the remote instance for deployment in the README i will write this into the deployment pipeline myself.

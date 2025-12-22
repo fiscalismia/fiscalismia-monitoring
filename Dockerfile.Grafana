@@ -1,0 +1,46 @@
+# =============================================================================
+# Fiscalismia Grafana Docker Image
+# Production-grade, security-hardened Alpine-based image
+# =============================================================================
+FROM grafana/grafana:10.2.3
+
+# Build arguments for OCI labels
+ARG BUILD_VERSION=0.9.0
+ARG BUILD_TIMESTAMP
+
+# OCI Image Labels
+LABEL org.opencontainers.image.title="Fiscalismia Grafana"
+LABEL org.opencontainers.image.description="Grafana dashboard for Fiscalismia monitoring"
+LABEL org.opencontainers.image.version="${BUILD_VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_TIMESTAMP}"
+LABEL org.opencontainers.image.vendor="Fiscalismia"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# Switch to root for setup
+USER root
+
+# Create directories with proper permissions
+RUN mkdir -p /var/lib/grafana /var/log/grafana /etc/grafana/provisioning/datasources \
+             /etc/grafana/provisioning/dashboards /etc/grafana/provisioning/notifiers \
+             /etc/grafana/provisioning/alerting /var/lib/grafana/dashboards && \
+    chown -R grafana:root /var/lib/grafana /var/log/grafana /etc/grafana
+
+# Copy provisioning configurations
+COPY --chown=grafana:root provisioning/datasources/ /etc/grafana/provisioning/datasources/
+COPY --chown=grafana:root provisioning/dashboards/ /etc/grafana/provisioning/dashboards/
+COPY --chown=grafana:root dashboards/ /var/lib/grafana/dashboards/
+
+# Switch to unprivileged grafana user (UID 472)
+USER grafana
+
+# Expose Grafana port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+
+# Data volume
+VOLUME ["/var/lib/grafana"]
+
+# Entrypoint is inherited from base image
