@@ -148,7 +148,7 @@ podman-compose down
 **Update Configuration:**
 ```bash
 # After modifying prometheus.yml, reload config without restart
-curl -X POST http://localhost:9090/-/reload
+curl -X POST http://127.0.0.1:9090/-/reload
 
 # Or restart the container
 podman-compose restart fiscalismia-prometheus
@@ -233,7 +233,7 @@ Deploy nginx-prometheus-exporter sidecar on each nginx instance:
 nginx-exporter:
   image: nginx/nginx-prometheus-exporter:1.0
   command:
-    - '-nginx.scrape-uri=http://localhost:8080/nginx_status'
+    - '-nginx.scrape-uri=http://127.0.0.1:8080/nginx_status'
   ports:
     - "9113:9113"
 ```
@@ -255,10 +255,10 @@ location /nginx_status {
 ### Check Service Health
 ```bash
 # Prometheus health
-curl -s http://localhost:9090/-/healthy
+curl -s http://127.0.0.1:9090/-/healthy
 
 # Grafana health
-curl -s http://localhost:3000/api/health
+curl -s http://127.0.0.1:3000/api/health
 ```
 
 ### Verify Prometheus Targets
