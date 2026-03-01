@@ -2,7 +2,7 @@
 # Fiscalismia Grafana Docker Image
 # Production-grade, security-hardened Alpine-based image
 # =============================================================================
-FROM grafana/grafana:10.2.3
+FROM grafana/grafana:10.4.19
 
 # Build arguments for OCI labels
 ARG BUILD_VERSION=0.9.0
