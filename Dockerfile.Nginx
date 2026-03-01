@@ -2,7 +2,7 @@
 # Fiscalismia Monitoring Nginx Docker Image
 # Reverse proxy for TLS termination to Prometheus & Grafana
 # =============================================================================
-FROM nginx:1.25-alpine
+FROM nginx:1.29.5-alpine
 
 # Build arguments for OCI labels
 ARG BUILD_VERSION=0.9.0
