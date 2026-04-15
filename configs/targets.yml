@@ -1,0 +1,72 @@
+# Each target is probed concurrently — total check time equals the slowest probe.
+
+global_timeout: 3s
+
+targets:
+
+  internal:
+    # Demo Instance (172.20.0.2)
+    - name: "Demo Frontend"
+      url:  "https://172.20.0.2:443/"
+      type: http
+
+    - name: "Demo Backend"
+      url:  "https://172.20.0.2:8443/api/fiscalismia/hc"
+      type: http
+
+    - name: "Demo WebScraper"
+      url:  "https://172.20.0.2:8444/hc"
+      type: http
+
+    - name: "Demo Postgres"
+      host: "172.20.0.2:5432"
+      type: tcp
+
+    - name: "Demo PKI"
+      host: "172.20.0.2:9000"
+      type: tcp
+
+    - name: "Loadbalancer"
+      host: "172.20.1.3:443"
+      type: tcp
+
+    - name: "Bastion Host"
+      host: "172.20.1.2:22"
+      type: tcp
+
+    - name: "NAT Gateway"
+      host: "172.20.1.4:443"
+      type: tcp
+
+  external:
+    - name: "Demo Frontend"
+      url:  "https://demo.fiscalismia.com"
+      type: http
+
+    - name: "Demo Backend"
+      url:  "https://backend.demo.fiscalismia.com/api/fiscalismia/hc"
+      type: http
+
+    - name: "Demo WebScraper"
+      url:  "https://fastapi.demo.fiscalismia.com/fastapi/fiscalismia/hc"
+      type: http
+
+    - name: "Demo Postgres"
+      url:  "https://backend.demo.fiscalismia.com/api/fiscalismia/db_hc"
+      type: tcp
+
+    - name: "Demo PKI"
+      host: "n/a"
+      type: tcp
+
+    - name: "Loadbalancer"
+      host: "public_ip_todo:443"
+      type: tcp
+
+    - name: "Bastion Host"
+      host: "public_ip_todo:22"
+      type: tcp
+
+    - name: "NAT Gateway"
+      host: "public_ip_todo:443"
+      type: tcp

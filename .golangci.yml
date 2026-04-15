@@ -1,0 +1,42 @@
+# golangci-lint v2 config
+# Docs: https://golangci-lint.run/docs/configuration/
+
+version: "2"
+
+formatters:
+  enable:
+    - gofmt       # enforces standard formatting (replaces gofumpt for most cases)
+
+
+linters:
+  # Start with a curated set, not "enable-all". The linters below catch
+  # real bugs and security issues without drowning you in style noise.
+  enable:
+    # ── Bug detection ──────────────────────────────────────────────
+    - errcheck        # unchecked errors — the #1 source of silent Go bugs
+    - staticcheck     # the gold standard Go static analyzer (SA, S, ST checks)
+    - govet           # reports suspicious constructs the compiler doesn't catch
+    - bodyclose       # unclosed HTTP response bodies (resource leak)
+    - nilerr          # returning nil when err is non-nil (swallowed errors)
+    - ineffassign     # assignments to variables that are never used
+
+    # ── Security ───────────────────────────────────────────────────
+    - gosec           # security-oriented rules (SQL injection, TLS misconfig, etc.)
+
+    # ── Code quality ───────────────────────────────────────────────
+    - unused          # unused code (functions, types, variables)
+    - misspell        # catches typos in comments, strings, and identifiers
+    - prealloc        # suggests preallocating slices when length is known
+    - copyloopvar     # detects loop variable capture bugs (pre-Go 1.22 patterns)
+
+  settings:
+    gosec:
+      excludes:
+        - G402
+# we intentionally skip TLS verify for internal probes
+
+exclusions:
+  rules:
+    - path: _test\.go
+      linters:
+        - errcheck    # test files can ignore errors for brevity
