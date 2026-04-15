@@ -1,13 +1,12 @@
 package main
 
 import (
-	"crypto/tls"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
+	"github.com/fiscalismia/fiscalismia-monitoring/internal/requests"
+	"github.com/fiscalismia/fiscalismia-monitoring/internal/responses"
 )
 
 func main() {
@@ -30,24 +29,12 @@ func main() {
 	}
 
 	// send http requests to targets
-	client := &http.Client{
-		Timeout: conf.GlobalTimeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-	resp, err := client.Get(target.URL)
-	if err != nil {
-		log.Fatalf("request to %s failed: %v", target.Name, err)
-	}
-	defer resp.Body.Close()
+	client := requests.CreateClient(conf.GlobalTimeout)
+	result := client.QueryHttp(target)
 
-	// parse http responses received from targets
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("read body: %v", err)
-	}
-	fmt.Printf("[%d] %s → %s\n", resp.StatusCode, target.Name, string(body))
+	// ASCII format result from request
+	response := responses.ASCII([]requests.Result{result})
+	fmt.Printf("%v\n", response)
 
 	return
 }

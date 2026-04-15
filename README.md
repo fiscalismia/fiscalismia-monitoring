@@ -7,13 +7,13 @@ Unified Monitoring Endpoint written in Go, concurrently requesting health and st
 ```bash
 # Install go on fedora
 sudo dnf install -y --quiet golang
+cd ~/git/fiscalismia-monitoring/
+go mod tidy
 ```
 
 ## Running
 
 ```bash
-cd ~/git/fiscalismia-monitoring/
-go mod tidy
 go run ./cmd/healthcheck/
 ```
 
@@ -23,10 +23,10 @@ go run ./cmd/healthcheck/
 ## Testing
 
 ```bash
-gofmt -s -w .
-go vet ./...
+gofmt -s -w . && go vet ./...
 go build ./cmd/healthcheck/
 ./healthcheck
+
 ```
 
 ## License
