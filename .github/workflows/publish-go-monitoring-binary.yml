@@ -1,0 +1,10 @@
+name: Fiscalismia-Monitoring Pipeline
+
+# on:
+#   push:
+#     branches:
+#       - main
+#       - pipeline_testing
+
+on:
+  workflow_dispatch:
