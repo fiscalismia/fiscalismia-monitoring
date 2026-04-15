@@ -4,9 +4,18 @@ Unified Monitoring Endpoint written in Go, concurrently requesting health and st
 
 ## Setup
 
+```bash
+# Install go on fedora
+sudo dnf install -y --quiet golang
+```
 
 ## Running
 
+```bash
+cd ~/git/fiscalismia-monitoring/
+go mod tidy
+go run ./cmd/healthcheck/
+```
 
 ## Updating
 
