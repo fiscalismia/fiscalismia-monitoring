@@ -1,12 +1,11 @@
 package requests
 
 import (
+	"context"
 	"crypto/tls"
 	"io"
-	"log"
 	"net/http"
 	"time"
-	"context"
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
 )
@@ -47,17 +46,18 @@ func CreateClient(globalTimeout time.Duration) *Client {
 // Method on the Client struct
 func (c *Client) QueryHttp(ctx context.Context, t *config.Target) Result {
 	start := time.Now()
-	latency := time.Since(start)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.URL, nil)
 	if err != nil {
-			return Result{Name: t.Name, URL: t.URL, Type: t.Type, Err: err}
+		return Result{Name: t.Name, URL: t.URL, Type: t.Type, Err: err}
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		log.Fatalf("request to %s failed: %v", t.Name, err)
+		return Result{Name: t.Name, URL: t.URL, Type: t.Type, Err: err}
 	}
 	defer resp.Body.Close()
+
+	latency := time.Since(start)
 	body, err := io.ReadAll(io.LimitReader(resp.Body, READ_CAPACITY_BYTES))
 	if err != nil {
 		return Result{Name: t.Name, URL: t.URL, Type: t.Type, StatusCode: resp.StatusCode, Latency: latency, Err: err}

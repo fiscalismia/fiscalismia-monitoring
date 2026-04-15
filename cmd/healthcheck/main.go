@@ -1,9 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
-	"context"
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/requests"

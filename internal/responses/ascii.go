@@ -11,7 +11,7 @@ import (
 func ASCII(results []requests.Result) string {
 	var builder strings.Builder
 	header := fmt.Sprintf("%-20s %-6s %-6s %-10s %s", "NAME", "TYPE", "STATUS", "LATENCY", "DETAIL")
-	divider := strings.Repeat("─", len(header))
+	divider := strings.Repeat("─", len(header)*2)
 
 	builder.WriteString(divider + "\n")
 	builder.WriteString(header + "\n")
@@ -24,7 +24,7 @@ func ASCII(results []requests.Result) string {
 			detail = r.Err.Error()
 		}
 		if r.Type == "http" && r.Err == nil {
-			status = fmt.Sprintf("Status %d", r.StatusCode)
+			status = fmt.Sprintf("%d", r.StatusCode)
 		}
 		if r.Type == "tcp" && r.Err == nil {
 			status = "TCP UP"
