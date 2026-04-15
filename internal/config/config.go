@@ -2,27 +2,27 @@ package config
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"os"
 	"time"
-	"gopkg.in/yaml.v3"
 )
 
 type TargetGroups struct {
-    Internal []Target `yaml:"internal"`
-    External []Target `yaml:"external"`
+	Internal []Target `yaml:"internal"`
+	External []Target `yaml:"external"`
 }
 
 type Target struct {
-	Name 		string 				`yaml:"name"`
-	URL 		string 				`yaml:"url"`
-	Host 		string 				`yaml:"host"`
-	Type 		string 				`yaml:"type"`
+	Name    string        `yaml:"name"`
+	URL     string        `yaml:"url"`
+	Host    string        `yaml:"host"`
+	Type    string        `yaml:"type"`
 	Timeout time.Duration `yaml:"timeout,omitempty"`
 }
 
 type Config struct {
-	GlobalTimeout	 time.Duration	`yaml:"global_timeout"`
-	Targets        TargetGroups   `yaml:"targets"`
+	GlobalTimeout time.Duration `yaml:"global_timeout"`
+	Targets       TargetGroups  `yaml:"targets"`
 }
 
 func Load(path string) (*Config, error) {

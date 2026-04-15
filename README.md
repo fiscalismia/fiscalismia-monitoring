@@ -22,6 +22,10 @@ go run ./cmd/healthcheck/
 
 ## Testing
 
+```bash
+gofmt -s -w .
+
+```
 
 ## License
 
