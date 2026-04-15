@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"context"
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/requests"
@@ -29,8 +30,9 @@ func main() {
 	}
 
 	// send http requests to targets
+	ctx := context.Background() // TODO: replace with server http request context later
 	client := requests.CreateClient(conf.GlobalTimeout)
-	result := client.QueryHttp(target)
+	result := client.QueryHttp(ctx, target)
 
 	// ASCII format result from request
 	response := responses.ASCII([]requests.Result{result})
