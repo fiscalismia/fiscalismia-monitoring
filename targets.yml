@@ -5,7 +5,6 @@ global_timeout: 3s
 targets:
 
   internal:
-    # Demo Instance (172.20.0.2)
     - name: "Demo Frontend"
       url:  "https://172.20.0.2:443/"
       type: http

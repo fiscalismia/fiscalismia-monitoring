@@ -29,21 +29,7 @@ type Client struct {
 	client *http.Client
 }
 
-func CreateClient(globalTimeout time.Duration) *Client {
-	return &Client{
-		client: &http.Client{
-			Timeout: globalTimeout,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					// TODO: enforce where possible
-					InsecureSkipVerify: true,
-				},
-			},
-		},
-	}
-}
-
-// Method on the Client struct
+// Public Method of the Client struct
 func (c *Client) QueryHttp(ctx context.Context, t *config.Target) Result {
 	start := time.Now()
 
@@ -70,5 +56,19 @@ func (c *Client) QueryHttp(ctx context.Context, t *config.Target) Result {
 		StatusCode: resp.StatusCode,
 		Body:       string(body),
 		Latency:    latency,
+	}
+}
+
+func CreateClient(globalTimeout time.Duration) *Client {
+	return &Client{
+		client: &http.Client{
+			Timeout: globalTimeout,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					// TODO: enforce where possible
+					InsecureSkipVerify: true,
+				},
+			},
+		},
 	}
 }
