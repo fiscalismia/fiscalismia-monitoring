@@ -1,12 +1,10 @@
 # golangci-lint v2 config
 # Docs: https://golangci-lint.run/docs/configuration/
-
 version: "2"
 
 formatters:
   enable:
     - gofmt       # enforces standard formatting (replaces gofumpt for most cases)
-
 
 linters:
   # Start with a curated set, not "enable-all". The linters below catch
@@ -28,12 +26,10 @@ linters:
     - misspell        # catches typos in comments, strings, and identifiers
     - prealloc        # suggests preallocating slices when length is known
     - copyloopvar     # detects loop variable capture bugs (pre-Go 1.22 patterns)
-
   settings:
     gosec:
       excludes:
-        - G402
-# we intentionally skip TLS verify for internal probes
+        - G402        # we intentionally skip TLS verify for internal probes
 
 exclusions:
   rules:

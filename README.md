@@ -24,7 +24,9 @@ go run ./cmd/healthcheck/
 
 ```bash
 gofmt -s -w .
-
+go vet ./...
+go build ./cmd/healthcheck/
+./healthcheck
 ```
 
 ## License

@@ -15,7 +15,7 @@ build:
 
 ## run: build and run locally (requires certs or use --insecure flag you'd add later)
 run:
-	build ./$(BINARY) --config=configs/targets.yml --addr=:8443
+	build ./$(BINARY) --config=./targets.yml --addr=:8443
 
 ## test: run all tests with race detector enabled
 ## The race detector instruments memory accesses at compile time to catch
