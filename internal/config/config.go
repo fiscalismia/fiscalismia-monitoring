@@ -22,7 +22,7 @@ type Target struct {
 
 type Config struct {
 	GlobalTimeout time.Duration `yaml:"global_timeout"`
-	RootDomain string `yaml:"root_domain"`
+	RootDomain    string        `yaml:"root_domain"`
 	Targets       TargetGroups  `yaml:"targets"`
 }
 

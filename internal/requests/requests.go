@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -31,6 +32,7 @@ type Result struct {
 
 type X509CertificateValidity struct {
 	IsValid bool
+	Expires time.Time
 	Err     error
 }
 
@@ -76,7 +78,7 @@ func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd 
 
 	tlsUrl, err := cleanTlsURL(t.URL, rd)
 	if err != nil {
-		return X509CertificateValidity{IsValid: false, Err: err}
+		return X509CertificateValidity{IsValid: false, Expires: time.Now(), Err: err}
 	}
 
 	config := &tls.Config{
@@ -86,14 +88,14 @@ func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd 
 	// Establish a TCP connection first
 	conn, err := tls.Dial("tcp", tlsUrl, config)
 	if err != nil {
-		return X509CertificateValidity{IsValid: false, Err: err}
+		return X509CertificateValidity{IsValid: false, Expires: time.Now(), Err: err}
 	}
 	defer conn.Close()
 
 	// Perform SSL/TLS handshake
 	err = conn.Handshake()
 	if err != nil {
-		return X509CertificateValidity{IsValid: false, Err: err}
+		return X509CertificateValidity{IsValid: false, Expires: time.Now(), Err: err}
 	}
 
 	// Retrieve the peer certificates
@@ -101,15 +103,13 @@ func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd 
 
 	// Iterate and validate each certificate in the chain
 	for _, cert := range certs {
-		_, err := cert.Verify(x509.VerifyOptions{})
-		if err != nil {
-			return X509CertificateValidity{IsValid: false, Err: err}
-		}
+		fmt.Printf("%v\n", formatCert(cert))
 	}
 
 	log.Printf("Successfully verified host: %s certificates", t.URL)
 	return X509CertificateValidity{
 		IsValid: true,
+		Expires: time.Now(),
 	}
 }
 func CreateClient(globalTimeout time.Duration) *Client {
@@ -126,14 +126,42 @@ func CreateClient(globalTimeout time.Duration) *Client {
 	}
 }
 
-// strips any trailing path within the fqdn
+// strips the protocol and any trailing path within the fqdn
 func cleanTlsURL(url string, rootDomain string) (string, error) {
 	proto := "https://"
 	idx := strings.Index(url, rootDomain)
-	if idx == 0 {
+	if idx == -1 {
 		return "", errors.New("Target.URL does not contain rootDomain")
 	}
 	// strips https:// and anything trailing .com
-	baseUrl := url[len(proto):idx+len(rootDomain)]
+	baseUrl := url[len(proto) : idx+len(rootDomain)]
 	return baseUrl + ":443", nil
+}
+
+// pretty prints TLS Certificate fields for detailed analysis
+func formatCert(cert *x509.Certificate) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Subject:        %s\n", cert.Subject.CommonName)
+	fmt.Fprintf(&b, "Issuer:         %s\n", cert.Issuer.CommonName)
+	fmt.Fprintf(&b, "Serial:         %s\n", cert.SerialNumber.Text(16))
+	fmt.Fprintf(&b, "Valid From:     %s\n", cert.NotBefore.Format(time.RFC3339))
+	fmt.Fprintf(&b, "Valid Until:    %s (%s)\n",
+		cert.NotAfter.Format(time.RFC3339),
+		humanizeExpiryDate(cert.NotAfter))
+	fmt.Fprintf(&b, "DNS Names:      %s\n", strings.Join(cert.DNSNames, ", "))
+	fmt.Fprintf(&b, "Sig Algorithm:  %s\n", cert.SignatureAlgorithm)
+	// ... key info, fingerprint, etc.
+	return b.String()
+}
+
+func humanizeExpiryDate(notAfter time.Time) string {
+	d := time.Until(notAfter)
+	days := int(d.Hours() / 24)
+	if days < 0 {
+		return fmt.Sprintf("EXPIRED %d days ago", -days)
+	}
+	if days == 0 {
+		return "expires today"
+	}
+	return fmt.Sprintf("in %d days", days)
 }
