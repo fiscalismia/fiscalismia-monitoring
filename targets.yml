@@ -1,6 +1,7 @@
 # Each target is probed concurrently — total check time equals the slowest probe.
 
 global_timeout: 3s
+root_domain: "fiscalismia.com"
 
 targets:
 

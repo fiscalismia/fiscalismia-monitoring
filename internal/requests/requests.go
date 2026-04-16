@@ -3,8 +3,12 @@ package requests
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"io"
+	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
@@ -23,6 +27,11 @@ type Result struct {
 	Body       string
 	Latency    time.Duration
 	Err        error
+}
+
+type X509CertificateValidity struct {
+	IsValid bool
+	Err     error
 }
 
 type Client struct {
@@ -59,6 +68,50 @@ func (c *Client) QueryHttp(ctx context.Context, t *config.Target) Result {
 	}
 }
 
+func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd string) X509CertificateValidity {
+	// sanity check for target URL
+	if !strings.HasPrefix(t.URL, "https://") {
+		return X509CertificateValidity{IsValid: false, Err: errors.New("URL does not contain https:// protocol.")}
+	}
+
+	tlsUrl, err := cleanTlsURL(t.URL, rd)
+	if err != nil {
+		return X509CertificateValidity{IsValid: false, Err: err}
+	}
+
+	config := &tls.Config{
+		InsecureSkipVerify: false,
+	}
+
+	// Establish a TCP connection first
+	conn, err := tls.Dial("tcp", tlsUrl, config)
+	if err != nil {
+		return X509CertificateValidity{IsValid: false, Err: err}
+	}
+	defer conn.Close()
+
+	// Perform SSL/TLS handshake
+	err = conn.Handshake()
+	if err != nil {
+		return X509CertificateValidity{IsValid: false, Err: err}
+	}
+
+	// Retrieve the peer certificates
+	certs := conn.ConnectionState().PeerCertificates
+
+	// Iterate and validate each certificate in the chain
+	for _, cert := range certs {
+		_, err := cert.Verify(x509.VerifyOptions{})
+		if err != nil {
+			return X509CertificateValidity{IsValid: false, Err: err}
+		}
+	}
+
+	log.Printf("Successfully verified host: %s certificates", t.URL)
+	return X509CertificateValidity{
+		IsValid: true,
+	}
+}
 func CreateClient(globalTimeout time.Duration) *Client {
 	return &Client{
 		client: &http.Client{
@@ -71,4 +124,16 @@ func CreateClient(globalTimeout time.Duration) *Client {
 			},
 		},
 	}
+}
+
+// strips any trailing path within the fqdn
+func cleanTlsURL(url string, rootDomain string) (string, error) {
+	proto := "https://"
+	idx := strings.Index(url, rootDomain)
+	if idx == 0 {
+		return "", errors.New("Target.URL does not contain rootDomain")
+	}
+	// strips https:// and anything trailing .com
+	baseUrl := url[len(proto):idx+len(rootDomain)]
+	return baseUrl + ":443", nil
 }
