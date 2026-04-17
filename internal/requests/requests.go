@@ -5,11 +5,17 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	"golang.org/x/net/icmp"
+	"golang.org/x/net/ipv4"
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
 )
@@ -26,6 +32,7 @@ type Result struct {
 	StatusCode int
 	Body       string
 	Latency    time.Duration
+	X509Info   X509CertificateValidity
 	Err        error
 }
 
@@ -40,7 +47,7 @@ type Client struct {
 }
 
 // Public Method of the Client struct to get a simple http response with status code
-func (c *Client) QueryHttp(ctx context.Context, t *config.Target) Result {
+func (c *Client) QueryHTTP(ctx context.Context, t *config.Target) Result {
 	start := time.Now()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.URL, nil)
@@ -65,6 +72,93 @@ func (c *Client) QueryHttp(ctx context.Context, t *config.Target) Result {
 		Type:       t.Type,
 		StatusCode: resp.StatusCode,
 		Body:       string(body),
+		Latency:    latency,
+	}
+}
+
+// Public Method of the Client struct to send a simple tcp connectivity probe
+func (c *Client) QueryTCP(ctx context.Context, t *config.Target) Result {
+	start := time.Now()
+
+	dialer := &net.Dialer{
+		Timeout:   t.Timeout, // per-target timeout from your YAML
+		KeepAlive: -1,        // disable keepalive — we close immediately anyway
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, t.Timeout)
+	defer cancel()
+
+	conn, err := dialer.DialContext(ctx, "tcp", t.Host)
+	if err != nil {
+		errLatency := time.Since(start)
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: errLatency, Err: err}
+	}
+	defer conn.Close()
+	connLatency := time.Since(start)
+
+	return Result{
+		Name:       t.Name,
+		Host:       t.Host,
+		Type:       t.Type,
+		StatusCode: 1,
+		Latency:    connLatency,
+	}
+}
+
+func (c *Client) QueryICMP(ctx context.Context, t *config.Target) Result {
+	start := time.Now()
+
+	conn, err := icmp.ListenPacket("udp4", "0.0.0.0")
+	if err != nil {
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Err: err}
+	}
+	defer conn.Close()
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		deadline = time.Now().Add(t.Timeout)
+	}
+	_ = conn.SetDeadline(deadline)
+
+	msg := icmp.Message{
+		Type: ipv4.ICMPTypeEcho, Code: 0,
+		Body: &icmp.Echo{
+			ID:   os.Getpid() & 0xffff,
+			Seq:  1,
+			Data: []byte("fiscalismia-monitoring"),
+		},
+	}
+	wb, err := msg.Marshal(nil)
+	if err != nil {
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Err: err}
+	}
+
+	dst := &net.UDPAddr{IP: net.ParseIP(t.Host)}
+	if _, err := conn.WriteTo(wb, dst); err != nil {
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Err: err}
+	}
+
+	rb := make([]byte, 1500)
+	n, _, err := conn.ReadFrom(rb)
+	latency := time.Since(start)
+	if err != nil {
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency, Err: err}
+	}
+
+	parsed, err := icmp.ParseMessage(1, rb[:n])
+	if err != nil {
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency, Err: err}
+	}
+	if parsed.Type != ipv4.ICMPTypeEchoReply {
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency,
+			Err: fmt.Errorf("unexpected icmp type: %v", parsed.Type)}
+	}
+
+	return Result{
+		Name:       t.Name,
+		Host:       t.Host,
+		Type:       t.Type,
+		StatusCode: 1,
 		Latency:    latency,
 	}
 }
@@ -108,11 +202,17 @@ func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd 
 				slog.Default().LogAttrs(ctx, slog.LevelDebug, "====> Detailed x509 certificate <====", x509CertAttrs(cert)...)
 				fromDate := cert.NotBefore
 				toDate := cert.NotAfter
+				// Validate Date Expiration range to be within expected bounds
 				if fromDate.Before(time.Now()) && toDate.After(time.Now()) {
-					slog.Debug("Successfully verified host certificate validity", "URL", t.URL, "CN", cert.Subject.CommonName)
+					days := daysUntilExpiry(toDate)
+					if days < 7 {
+						slog.Warn("Certificate expiring soon", "fromDate", fromDate, "toDate", toDate)
+					} else {
+						slog.Info("Successfully verified host certificate validity", "CN", cert.Subject.CommonName, "URL", t.URL)
+					}
 					return X509CertificateValidity{
 						IsValid:         true,
-						DaysUntilExpiry: daysUntilExpiry(toDate),
+						DaysUntilExpiry: days,
 					}
 				} else {
 					slog.Warn("Certificate validity time out of range.", "fromDate", fromDate, "toDate", toDate)
@@ -136,7 +236,7 @@ func CreateClient(globalTimeout time.Duration) *Client {
 			Timeout: globalTimeout,
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: false,
+					InsecureSkipVerify: false, // false enabled TLS, which is recommended
 				},
 			},
 		},

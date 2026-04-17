@@ -63,9 +63,9 @@ targets:
       type: tcp
 
     - name: "Bastion Host"
-      host: "46.225.239.49:22"
+      host: "46.224.30.190:22"
       type: tcp
 
     - name: "NAT Gateway"
-      host: "49.13.166.73:443"
-      type: tcp
+      host: "49.13.166.73"
+      type: icmp

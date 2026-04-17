@@ -10,7 +10,7 @@ import (
 
 func ASCII(results []requests.Result) string {
 	var builder strings.Builder
-	header := fmt.Sprintf("%-20s %-6s %-6s %-10s %s", "NAME", "TYPE", "STATUS", "LATENCY", "DETAIL")
+	header := fmt.Sprintf("%-20s %-6s %-6s %-10s %-14s %s", "NAME", "TYPE", "STATUS", "LATENCY", "TLS_VALID_DAYS", "DETAIL")
 	divider := strings.Repeat("─", len(header)*2)
 
 	builder.WriteString(divider + "\n")
@@ -30,11 +30,12 @@ func ASCII(results []requests.Result) string {
 			status = "TCP UP"
 		}
 
-		line := fmt.Sprintf("%-20s %-6s %-6s %-10s %s",
+		line := fmt.Sprintf("%-20s %-6s %-6s %-10s %-14d %s",
 			r.Name,
 			r.Type,
 			status,
 			r.Latency.Round(time.Millisecond),
+			r.X509Info.DaysUntilExpiry,
 			truncate(detail, 60),
 		)
 		builder.WriteString(line + "\n")

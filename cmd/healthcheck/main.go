@@ -40,23 +40,31 @@ func main() {
 	var target *config.Target
 	for _, t := range conf.Targets.External {
 		target = &t
+		var result requests.Result
+		client := requests.CreateClient(conf.GlobalTimeout)
 		switch target.Type {
 		case "http":
-			slog.Debug("http target acquired. Sending http query en route", "name", target.Name, "URL", target.URL)
+			slog.Debug("[http] target acquired. Sending http query en route", "name", target.Name, "URL", target.URL)
 			// send http requests to targets
-			client := requests.CreateClient(conf.GlobalTimeout)
-			result := client.QueryHttp(ctx, target)
+			result = client.QueryHTTP(ctx, target)
 			if target.X509Verify {
-				certValid := client.VerifyTLSCertificate(ctx, target, conf.RootDomain)
-				fmt.Printf("%v\n", certValid)
+				x509Verify := client.VerifyTLSCertificate(ctx, target, conf.RootDomain)
+				result.X509Info = x509Verify
 			}
 
 			// ASCII format result from request
 			response := responses.ASCII([]requests.Result{result})
 			fmt.Printf("%v\n", response)
 		case "tcp":
-			slog.Debug("tcp target acquired. Sending tcp query to host", "name", target.Name, "host", target.Host)
+			slog.Debug("[tcp] target acquired. Sending tcp query to host", "name", target.Name, "host", target.Host)
+			result = client.QueryTCP(ctx, target)
+		case "icmp":
+			slog.Debug("[icmp] target acquired. Try raw ICMP socket conn query", "name", target.Name, "host", target.Host)
+			result = client.QueryICMP(ctx, target)
 		}
+		// ASCII format result from request
+		response := responses.ASCII([]requests.Result{result})
+		fmt.Printf("%v\n", response)
 	}
 	if target == nil {
 		errorMsg := "Could not acquire target from conf."
