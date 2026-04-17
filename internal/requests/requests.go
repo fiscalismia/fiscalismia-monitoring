@@ -5,9 +5,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"fmt"
+	"log/slog"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -105,12 +104,12 @@ func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd 
 	for _, cert := range certs {
 		if cert.Subject.CommonName != "" && len(cert.DNSNames) > 0 {
 			if strings.Contains(tlsUrl, cert.Subject.CommonName) {
-				fmt.Printf("%v\n", prettyPrintX509Cert(cert))
+				slog.Default().LogAttrs(ctx, slog.LevelDebug, "Detailed x509 certificate", x509CertAttrs(cert)...)
 			}
 		}
 	}
 
-	log.Printf("Successfully verified host: %s certificates", t.URL)
+	slog.Debug("Successfully verified host certificates", "URL", t.URL)
 	return X509CertificateValidity{
 		IsValid: true,
 		Expires: time.Now(),
@@ -122,8 +121,7 @@ func CreateClient(globalTimeout time.Duration) *Client {
 			Timeout: globalTimeout,
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					// TODO: enforce where possible
-					InsecureSkipVerify: true,
+					InsecureSkipVerify: false,
 				},
 			},
 		},
@@ -142,30 +140,20 @@ func cleanTlsURL(url string, rootDomain string) (string, error) {
 	return baseUrl + ":443", nil
 }
 
-// pretty prints TLS Certificate fields for detailed analysis
-func prettyPrintX509Cert(cert *x509.Certificate) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "Subject:        %s\n", cert.Subject.CommonName)
-	fmt.Fprintf(&b, "Issuer:         %s\n", cert.Issuer.CommonName)
-	fmt.Fprintf(&b, "Serial:         %s\n", cert.SerialNumber.Text(16))
-	fmt.Fprintf(&b, "Valid From:     %s\n", cert.NotBefore.Format(time.RFC3339))
-	fmt.Fprintf(&b, "Valid Until:    %s (%s)\n",
-		cert.NotAfter.Format(time.RFC3339),
-		humanizeExpiryDate(cert.NotAfter))
-	fmt.Fprintf(&b, "DNS Names:      %s\n", strings.Join(cert.DNSNames, ", "))
-	fmt.Fprintf(&b, "Sig Algorithm:  %s\n", cert.SignatureAlgorithm)
-	// ... key info, fingerprint, etc.
-	return b.String()
+// x509CertAttrs returns a grouped slog attribute containing TLS certificate fields.
+func x509CertAttrs(cert *x509.Certificate) []slog.Attr {
+    return []slog.Attr{
+        slog.String("subject",          cert.Subject.CommonName),
+        slog.String("issuer",           cert.Issuer.CommonName),
+        slog.String("serial",           cert.SerialNumber.Text(16)),
+        slog.String("valid_from",       cert.NotBefore.Format(time.RFC3339)),
+        slog.String("valid_until",      cert.NotAfter.Format(time.RFC3339)),
+        slog.Int("expires_in_days",     daysUntilExpiry(cert.NotAfter)),
+        slog.Any("dns_names",           cert.DNSNames),
+        slog.String("sig_algorithm",    cert.SignatureAlgorithm.String()),
+    }
 }
 
-func humanizeExpiryDate(notAfter time.Time) string {
-	d := time.Until(notAfter)
-	days := int(d.Hours() / 24)
-	if days < 0 {
-		return fmt.Sprintf("EXPIRED %d days ago", -days)
-	}
-	if days == 0 {
-		return "expires today"
-	}
-	return fmt.Sprintf("in %d days", days)
+func daysUntilExpiry(notAfter time.Time) int {
+    return int(time.Until(notAfter).Hours() / 24)
 }

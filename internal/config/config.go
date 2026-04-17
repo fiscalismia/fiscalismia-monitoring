@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"gopkg.in/yaml.v3"
+	"log/slog"
 	"os"
 	"time"
 )
@@ -32,11 +33,13 @@ func Load(path string) (*Config, error) {
 
 	data, err := os.ReadFile(path)
 	if err != nil {
+		slog.Error("Error reading config", "path", path)
 		return nil, fmt.Errorf("Parse config %w", err)
 	}
 
 	// Unmarshal (parse & map yaml file) and allocate to go struct in memory
 	if err := yaml.Unmarshal(data, &config); err != nil {
+		slog.Error("Yaml unmarshaling failed.")
 		return nil, fmt.Errorf("Cannot unmarshal yaml data: %v", err)
 	}
 

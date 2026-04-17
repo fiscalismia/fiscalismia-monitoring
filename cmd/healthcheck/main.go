@@ -3,7 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"os"
+	"time"
+	"log/slog"
+
+	"github.com/lmittmann/tint"
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/requests"
@@ -11,9 +15,23 @@ import (
 )
 
 func main() {
+	// INIT GLOBAL LOGGING CONFIGURATION
+	syslogLevel := slog.LevelDebug
+	if os.Getenv("ENVIRONMENT") == "demo" || os.Getenv("ENVIRONMENT") == "prod"  {
+		syslogLevel = slog.LevelInfo
+	}
+	handler := tint.NewHandler(os.Stderr, &tint.Options{
+    Level:      syslogLevel,
+    TimeFormat: time.Kitchen,  // "3:04PM" — far less noisy than RFC3339
+	})
+	slog.SetDefault(slog.New(handler))
+	slog.Debug("hello", "debug", "derp")
+	slog.Info("hello", "info", "derp")
+
 	conf, err := config.Load("./targets.yml")
 	if err != nil {
-		log.Fatalf("Targets could not be loaded from conf: %v", err)
+    slog.Error("could not load config", "path", "./targets.yml", "err", err)
+    os.Exit(1)
 	}
 
 	ctx := context.Background() // TODO: replace with server http request context later
@@ -23,7 +41,7 @@ func main() {
 	for _, t := range conf.Targets.External {
 		if t.Type == "http" {
 			target = &t
-			fmt.Printf("http target acquired [%v]\n ===> Sending http query en route [%v]\n", target.Name, target.URL)
+			slog.Debug("http target acquired. Sending http query en route", "name", target.Name, "URL", target.URL)
 			// send http requests to targets
 			client := requests.CreateClient(conf.GlobalTimeout)
 			result := client.QueryHttp(ctx, target)
@@ -38,7 +56,9 @@ func main() {
 		}
 	}
 	if target == nil {
-		panic("Could not acquire target from conf.")
+		errorMsg := "Could not acquire target from conf."
+		slog.Error(errorMsg)
+		os.Exit(1)
 	}
 
 	return
