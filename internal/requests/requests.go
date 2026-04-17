@@ -5,8 +5,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"log/slog"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -30,16 +30,16 @@ type Result struct {
 }
 
 type X509CertificateValidity struct {
-	IsValid bool
-	Expires time.Time
-	Err     error
+	IsValid         bool
+	DaysUntilExpiry int
+	Err             error
 }
 
 type Client struct {
 	client *http.Client
 }
 
-// Public Method of the Client struct
+// Public Method of the Client struct to get a simple http response with status code
 func (c *Client) QueryHttp(ctx context.Context, t *config.Target) Result {
 	start := time.Now()
 
@@ -69,6 +69,7 @@ func (c *Client) QueryHttp(ctx context.Context, t *config.Target) Result {
 	}
 }
 
+// Public Method of the Client struct to query its tls certs for validity dates checking expiry
 func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd string) X509CertificateValidity {
 	// sanity check for target URL
 	if !strings.HasPrefix(t.URL, "https://") {
@@ -77,7 +78,7 @@ func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd 
 
 	tlsUrl, err := cleanTlsURL(t.URL, rd)
 	if err != nil {
-		return X509CertificateValidity{IsValid: false, Expires: time.Now(), Err: err}
+		return X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: err}
 	}
 
 	config := &tls.Config{
@@ -87,14 +88,14 @@ func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd 
 	// Establish a TCP connection first
 	conn, err := tls.Dial("tcp", tlsUrl, config)
 	if err != nil {
-		return X509CertificateValidity{IsValid: false, Expires: time.Now(), Err: err}
+		return X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: err}
 	}
 	defer conn.Close()
 
 	// Perform SSL/TLS handshake
 	err = conn.Handshake()
 	if err != nil {
-		return X509CertificateValidity{IsValid: false, Expires: time.Now(), Err: err}
+		return X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: err}
 	}
 
 	// Retrieve the peer certificates
@@ -104,17 +105,31 @@ func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd 
 	for _, cert := range certs {
 		if cert.Subject.CommonName != "" && len(cert.DNSNames) > 0 {
 			if strings.Contains(tlsUrl, cert.Subject.CommonName) {
-				slog.Default().LogAttrs(ctx, slog.LevelDebug, "Detailed x509 certificate", x509CertAttrs(cert)...)
+				slog.Default().LogAttrs(ctx, slog.LevelDebug, "====> Detailed x509 certificate <====", x509CertAttrs(cert)...)
+				fromDate := cert.NotBefore
+				toDate := cert.NotAfter
+				if fromDate.Before(time.Now()) && toDate.After(time.Now()) {
+					slog.Debug("Successfully verified host certificate validity", "URL", t.URL, "CN", cert.Subject.CommonName)
+					return X509CertificateValidity{
+						IsValid:         true,
+						DaysUntilExpiry: daysUntilExpiry(toDate),
+					}
+				} else {
+					slog.Warn("Certificate validity time out of range.", "fromDate", fromDate, "toDate", toDate)
+					break
+				}
+
 			}
 		}
 	}
 
-	slog.Debug("Successfully verified host certificates", "URL", t.URL)
 	return X509CertificateValidity{
-		IsValid: true,
-		Expires: time.Now(),
+		IsValid:         false,
+		DaysUntilExpiry: -1,
+		Err:             errors.New("VerifyTLSCertificate completed without resolution."),
 	}
 }
+
 func CreateClient(globalTimeout time.Duration) *Client {
 	return &Client{
 		client: &http.Client{
@@ -142,18 +157,19 @@ func cleanTlsURL(url string, rootDomain string) (string, error) {
 
 // x509CertAttrs returns a grouped slog attribute containing TLS certificate fields.
 func x509CertAttrs(cert *x509.Certificate) []slog.Attr {
-    return []slog.Attr{
-        slog.String("subject",          cert.Subject.CommonName),
-        slog.String("issuer",           cert.Issuer.CommonName),
-        slog.String("serial",           cert.SerialNumber.Text(16)),
-        slog.String("valid_from",       cert.NotBefore.Format(time.RFC3339)),
-        slog.String("valid_until",      cert.NotAfter.Format(time.RFC3339)),
-        slog.Int("expires_in_days",     daysUntilExpiry(cert.NotAfter)),
-        slog.Any("dns_names",           cert.DNSNames),
-        slog.String("sig_algorithm",    cert.SignatureAlgorithm.String()),
-    }
+	return []slog.Attr{
+		slog.String("subject", cert.Subject.CommonName),
+		slog.String("issuer", cert.Issuer.CommonName),
+		slog.String("issuer_url", cert.IssuingCertificateURL[0]),
+		slog.String("serial", cert.SerialNumber.Text(16)),
+		slog.String("valid_from", cert.NotBefore.Format(time.RFC3339)),
+		slog.String("valid_until", cert.NotAfter.Format(time.RFC3339)),
+		slog.Int("expires_in_days", daysUntilExpiry(cert.NotAfter)),
+		slog.Any("dns_names", cert.DNSNames),
+		slog.String("sig_algorithm", cert.SignatureAlgorithm.String()),
+	}
 }
 
-func daysUntilExpiry(notAfter time.Time) int {
-    return int(time.Until(notAfter).Hours() / 24)
+func daysUntilExpiry(t time.Time) int {
+	return int(time.Until(t).Hours() / 24)
 }

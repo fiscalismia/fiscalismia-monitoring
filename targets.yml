@@ -58,18 +58,14 @@ targets:
       url:  "https://backend.demo.fiscalismia.com/api/fiscalismia/db_hc"
       type: http
 
-    - name: "Demo PKI"
-      host: "n/a"
-      type: tcp
-
     - name: "Loadbalancer"
-      host: "public_ip_todo:443"
+      host: "46.225.239.49:443"
       type: tcp
 
     - name: "Bastion Host"
-      host: "public_ip_todo:22"
+      host: "46.225.239.49:22"
       type: tcp
 
     - name: "NAT Gateway"
-      host: "public_ip_todo:443"
+      host: "49.13.166.73:443"
       type: tcp
