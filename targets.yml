@@ -56,7 +56,7 @@ targets:
 
     - name: "Demo Postgres"
       url:  "https://backend.demo.fiscalismia.com/api/fiscalismia/db_hc"
-      type: tcp
+      type: http
 
     - name: "Demo PKI"
       host: "n/a"
