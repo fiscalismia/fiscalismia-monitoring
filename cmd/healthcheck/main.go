@@ -37,6 +37,7 @@ func main() {
 
 	///// ACQUIRE EXTERNAL TARGETS (publicly reachable) from targets.yaml
 	var target *config.Target
+	var results []requests.Result
 	for _, t := range conf.Targets.External {
 		target = &t
 		var result requests.Result
@@ -56,13 +57,10 @@ func main() {
 			slog.Debug("[icmp] target acquired. Try raw ICMP socket conn query", "name", target.Name, "host", target.Host)
 			result = client.QueryICMP(ctx, target)
 		}
-		// ASCII format result from request
-		response := responses.ASCII([]requests.Result{result})
-		fmt.Printf("%v\n", response)
+		results = append(results, result)
 	}
-	if target == nil {
-		errorMsg := "Could not acquire target from conf."
-		slog.Error(errorMsg)
-		os.Exit(1)
-	}
+
+	// ASCII format result from request
+	response := responses.ASCII(results)
+	fmt.Printf("%v\n", response)
 }

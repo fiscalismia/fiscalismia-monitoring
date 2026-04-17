@@ -26,8 +26,11 @@ func ASCII(results []requests.Result) string {
 		if r.Type == "http" && r.Err == nil {
 			status = fmt.Sprintf("%d", r.StatusCode)
 		}
-		if r.Type == "tcp" && r.Err == nil {
-			status = "TCP UP"
+		if r.Type == "tcp" && r.StatusCode == 1 && r.Err == nil {
+			status = "UP"
+		}
+		if r.Type == "icmp" && r.StatusCode == 1 && r.Err == nil {
+			status = "OK"
 		}
 
 		line := fmt.Sprintf("%-20s %-6s %-6s %-10s %-14d %s",

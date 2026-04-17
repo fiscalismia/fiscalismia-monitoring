@@ -1,3 +1,6 @@
 
-# since we use raw socket icmp health checks we need these capabilities:
-# --cap-add=NET_BIND_SERVICE equivalent for raw sockets, specifically --cap-add=NET_RAW
+# we might need udp4 icmp address permission ín the container for pings to nat gateway public ip
+# services:
+#   monitoring:
+#     sysctls:
+#       - net.ipv4.ping_group_range=0 2147483647

@@ -146,13 +146,15 @@ func (c *Client) QueryICMP(ctx context.Context, t *config.Target) Result {
 	- Sequence Number (16 bits): Tracks the order of packets.
 	- Data (Variable length): Contains the payload, e.g: timestamps.
 	*/
+	dataPayload := time.Now().String()
+	slog.Debug("dataPayload", "d", dataPayload)
 	msg := icmp.Message{
 		Type: ipv4.ICMPTypeEcho,
 		Code: 0,
 		Body: &icmp.Echo{
 			ID:   os.Getpid() & 0xffff,
 			Seq:  1,
-			Data: []byte("fiscalismia-monitoring"),
+			Data: []byte(dataPayload),
 		},
 	}
 	// Marshaling serializes the actual method into bytes for packet transmission
@@ -189,6 +191,14 @@ func (c *Client) QueryICMP(ctx context.Context, t *config.Target) Result {
 		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency,
 			Err: fmt.Errorf("unexpected icmp type: %v", parsed.Type)}
 	}
+	// extracts the received payload
+	echo, ok := parsed.Body.(*icmp.Echo)
+	if !ok {
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency,
+			Err: fmt.Errorf("unexpected ICMP body type: %T", parsed.Body)}
+	}
+	// should contain exactly the dataPayload sent
+	responseBody := string(echo.Data)
 
 	return Result{
 		Name:       t.Name,
@@ -196,6 +206,7 @@ func (c *Client) QueryICMP(ctx context.Context, t *config.Target) Result {
 		Type:       t.Type,
 		StatusCode: 1,
 		Latency:    latency,
+		Body:       responseBody,
 	}
 }
 
