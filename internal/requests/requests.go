@@ -42,6 +42,19 @@ type X509CertificateValidity struct {
 	Err             error
 }
 
+func CreateClient(globalTimeout time.Duration) *Client {
+	return &Client{
+		client: &http.Client{
+			Timeout: globalTimeout,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: false, // false enabled TLS, which is recommended
+				},
+			},
+		},
+	}
+}
+
 type Client struct {
 	client *http.Client
 }
@@ -105,46 +118,69 @@ func (c *Client) QueryTCP(ctx context.Context, t *config.Target) Result {
 	}
 }
 
+// Public Method of the Client struct to send a simple tcp connectivity probe
 func (c *Client) QueryICMP(ctx context.Context, t *config.Target) Result {
 	start := time.Now()
 
+	// create a bi-directional layer 3 datasocket for icmp communication
+	// udp4 uses unprivilidged icmp echo commands not requiring special capabilities
+	// /proc/sys/net/ipv4/ping_group_range needs to read "0       2147483647" on host
 	conn, err := icmp.ListenPacket("udp4", "0.0.0.0")
 	if err != nil {
 		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Err: err}
 	}
 	defer conn.Close()
 
+	// raw datasockets that are e.g. firewalled block connections, so we set a timeout
 	deadline, ok := ctx.Deadline()
 	if !ok {
 		deadline = time.Now().Add(t.Timeout)
 	}
 	_ = conn.SetDeadline(deadline)
 
+	/* Construct ICMP Packet with pre-defined packet structure
+	- Type (8 bits): Specifies the message type. Echo Request = 8, Echo Reply = 0.
+	- Code (8 bits): Provides additional information. For Echo messages, this is always 0.
+	- Checksum (16 bits): Used for error-checking the packet.
+	- Identifier (16 bits): Helps match requests with replies.
+	- Sequence Number (16 bits): Tracks the order of packets.
+	- Data (Variable length): Contains the payload, e.g: timestamps.
+	*/
 	msg := icmp.Message{
-		Type: ipv4.ICMPTypeEcho, Code: 0,
+		Type: ipv4.ICMPTypeEcho,
+		Code: 0,
 		Body: &icmp.Echo{
 			ID:   os.Getpid() & 0xffff,
 			Seq:  1,
 			Data: []byte("fiscalismia-monitoring"),
 		},
 	}
+	// Marshaling serializes the actual method into bytes for packet transmission
 	wb, err := msg.Marshal(nil)
 	if err != nil {
 		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Err: err}
 	}
 
+	// the unprivileged ICMP mode used UDP4 socket-address types
 	dst := &net.UDPAddr{IP: net.ParseIP(t.Host)}
+	// sends the byte encoded icmp packet to the target host
 	if _, err := conn.WriteTo(wb, dst); err != nil {
 		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Err: err}
 	}
 
+	// allocates a 1500 byte read buffer (Ethernet Maximum Transmission Unit (MTU))
 	rb := make([]byte, 1500)
-	n, _, err := conn.ReadFrom(rb)
+	n, addr, err := conn.ReadFrom(rb)
 	latency := time.Since(start)
 	if err != nil {
 		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency, Err: err}
 	}
+	if !strings.Contains(addr.String(), t.Host) {
+		slog.Warn("Source Address not contained in icmp response.")
+	}
 
+	// parses ICMP payload, 1 is IANA's protocol number for ICMP
+	// rb[:n] is reading the amount of bytes received
 	parsed, err := icmp.ParseMessage(1, rb[:n])
 	if err != nil {
 		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency, Err: err}
@@ -227,19 +263,6 @@ func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd 
 		IsValid:         false,
 		DaysUntilExpiry: -1,
 		Err:             errors.New("VerifyTLSCertificate completed without resolution."),
-	}
-}
-
-func CreateClient(globalTimeout time.Duration) *Client {
-	return &Client{
-		client: &http.Client{
-			Timeout: globalTimeout,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: false, // false enabled TLS, which is recommended
-				},
-			},
-		},
 	}
 }
 

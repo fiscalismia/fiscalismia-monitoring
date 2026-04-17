@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	// INIT GLOBAL LOGGING CONFIGURATION
+	///// INIT GLOBAL LOGGING CONFIGURATION
 	syslogLevel := slog.LevelDebug
 	if os.Getenv("ENVIRONMENT") == "demo" || os.Getenv("ENVIRONMENT") == "prod" {
 		syslogLevel = slog.LevelInfo
@@ -25,9 +25,8 @@ func main() {
 		TimeFormat: time.Kitchen, // "3:04PM" — far less noisy than RFC3339
 	})
 	slog.SetDefault(slog.New(handler))
-	slog.Debug("hello", "debug", "derp")
-	slog.Info("hello", "info", "derp")
 
+	///// LOAD CONFIG
 	conf, err := config.Load("./targets.yml")
 	if err != nil {
 		slog.Error("could not load config", "path", "./targets.yml", "err", err)
@@ -36,7 +35,7 @@ func main() {
 
 	ctx := context.Background() // TODO: replace with server http request context later
 
-	// Acquire external (publicly reachable) request targets from yaml
+	///// ACQUIRE EXTERNAL TARGETS (publicly reachable) from targets.yaml
 	var target *config.Target
 	for _, t := range conf.Targets.External {
 		target = &t
@@ -45,16 +44,11 @@ func main() {
 		switch target.Type {
 		case "http":
 			slog.Debug("[http] target acquired. Sending http query en route", "name", target.Name, "URL", target.URL)
-			// send http requests to targets
 			result = client.QueryHTTP(ctx, target)
 			if target.X509Verify {
 				x509Verify := client.VerifyTLSCertificate(ctx, target, conf.RootDomain)
 				result.X509Info = x509Verify
 			}
-
-			// ASCII format result from request
-			response := responses.ASCII([]requests.Result{result})
-			fmt.Printf("%v\n", response)
 		case "tcp":
 			slog.Debug("[tcp] target acquired. Sending tcp query to host", "name", target.Name, "host", target.Host)
 			result = client.QueryTCP(ctx, target)
