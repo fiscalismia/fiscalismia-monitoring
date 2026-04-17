@@ -33,12 +33,14 @@ func main() {
 	ctx := context.Background() // TODO: replace with server http request context later
 	client := requests.CreateClient(conf.GlobalTimeout)
 	result := client.QueryHttp(ctx, target)
-	certValid := client.VerifyTLSCertificate(ctx, target, conf.RootDomain)
+	if target.X509Verify {
+		certValid := client.VerifyTLSCertificate(ctx, target, conf.RootDomain)
+		fmt.Printf("%v\n", certValid)
+	}
 
 	// ASCII format result from request
 	response := responses.ASCII([]requests.Result{result})
 	fmt.Printf("%v\n", response)
-	fmt.Printf("%v\n", certValid)
 
 	return
 }

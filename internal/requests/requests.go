@@ -101,9 +101,13 @@ func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd 
 	// Retrieve the peer certificates
 	certs := conn.ConnectionState().PeerCertificates
 
-	// Iterate and validate each certificate in the chain
+	// Iterate and validate each certificate in the chain if tls verify flag is set in conf
 	for _, cert := range certs {
-		fmt.Printf("%v\n", formatCert(cert))
+		if cert.Subject.CommonName != "" && len(cert.DNSNames) > 0 {
+			if strings.Contains(tlsUrl, cert.Subject.CommonName) {
+				fmt.Printf("%v\n", prettyPrintX509Cert(cert))
+			}
+		}
 	}
 
 	log.Printf("Successfully verified host: %s certificates", t.URL)
@@ -139,7 +143,7 @@ func cleanTlsURL(url string, rootDomain string) (string, error) {
 }
 
 // pretty prints TLS Certificate fields for detailed analysis
-func formatCert(cert *x509.Certificate) string {
+func prettyPrintX509Cert(cert *x509.Certificate) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Subject:        %s\n", cert.Subject.CommonName)
 	fmt.Fprintf(&b, "Issuer:         %s\n", cert.Issuer.CommonName)

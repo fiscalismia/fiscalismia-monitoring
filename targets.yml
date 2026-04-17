@@ -42,14 +42,17 @@ targets:
     - name: "Demo Frontend"
       url:  "https://demo.fiscalismia.com"
       type: http
+      x509_verify: true
 
     - name: "Demo Backend"
       url:  "https://backend.demo.fiscalismia.com/api/fiscalismia/hc"
       type: http
+      x509_verify: true
 
     - name: "Demo WebScraper"
       url:  "https://fastapi.demo.fiscalismia.com/fastapi/fiscalismia/hc"
       type: http
+      x509_verify: true
 
     - name: "Demo Postgres"
       url:  "https://backend.demo.fiscalismia.com/api/fiscalismia/db_hc"

@@ -13,11 +13,12 @@ type TargetGroups struct {
 }
 
 type Target struct {
-	Name    string        `yaml:"name"`
-	URL     string        `yaml:"url"`
-	Host    string        `yaml:"host"`
-	Type    string        `yaml:"type"`
-	Timeout time.Duration `yaml:"timeout,omitempty"`
+	Name       string        `yaml:"name"`
+	URL        string        `yaml:"url"`
+	Host       string        `yaml:"host"`
+	Type       string        `yaml:"type"`
+	X509Verify bool          `yaml:"x509_verify"`
+	Timeout    time.Duration `yaml:"timeout,omitempty"`
 }
 
 type Config struct {
