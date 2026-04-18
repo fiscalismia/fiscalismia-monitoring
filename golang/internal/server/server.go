@@ -45,7 +45,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 }
 
 func (s *Server) Start() error {
-	slog.Info("http server listening at", "addr", s.httpServer.Addr, "hc", ROUTE_GOLANG_HEALTH, "bytes", s.httpServer.MaxHeaderBytes)
+	slog.Info("http server listening at", "addr", s.httpServer.Addr, "hc", ROUTE_GOLANG_HEALTH)
 	if err := s.httpServer.ListenAndServe(); err != nil &&
 		!errors.Is(err, http.ErrServerClosed) {
 		return err

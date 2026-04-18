@@ -1,9 +1,7 @@
-/healthcheck
-/healthcheck.exe
-/golang/healthcheck
-/golang/healthcheck.exe
 golang/healthcheck
 golang/healthcheck.exe
+golang/healthcheck-server
+golang/healthcheck-server.exe
 .claude/
 CLAUDE.md
 .env

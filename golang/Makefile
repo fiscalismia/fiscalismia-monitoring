@@ -22,10 +22,6 @@ LDFLAGS   := -s -w \
 ##          ___           ___       __        ___  __
 ##    |__| |__   /\  |     |  |__| /  ` |__| |__  /  ` |__/
 ##    |  | |___ /~~\ |___  |  |  | \__, |  | |___ \__, |  \
-## build: compile the binary for current platform with version metadata stamped in via -ldflags
-build:
-	go build -ldflags="$(LDFLAGS)" -trimpath -o $(BINARY) $(CMD)
-
 ## run: build and run locally (requires certs or use --insecure flag you'd add later)
 run: build
 	./$(BINARY)
@@ -54,6 +50,10 @@ docker:
 clean:
 	rm -f $(BINARY)
 	rm -f $(SRV_BINARY)
+
+## build: compile the binary for current platform with version metadata stamped in via -ldflags
+build:
+	go build -ldflags="$(LDFLAGS)" -trimpath -o $(BINARY) $(CMD)
 
 ## execute runs the compiled binary
 healthcheck:
