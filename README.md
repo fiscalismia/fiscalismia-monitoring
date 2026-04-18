@@ -4,8 +4,6 @@ Runs two monitoring services
 1: unified HTTP Endpoint written in Go, concurrently requesting health and status information from the entire Fiscalismia System Landscape, returned as ASCII output to curl CLI queries.
 2: Grafana Dashboard with Prometheus Metrics, e.g. connection logging for incoming (via LB) and outgoing (via NAT-GW) requests.
 
-
-## Golang Healthcheck
 ### Setup
 
 ```bash
@@ -14,43 +12,15 @@ sudo dnf install -y --quiet golang
 cd ~/git/fiscalismia-monitoring/golang
 make tidy
 ```
+
 ### Development
 
-#### Running Healthcheck CMD
-
-**Naively**
 ```bash
-make run
-```
-
-**Properly**
-```bash
-make clean
-make fmt
-make vet
-make build
-make healthcheck
-# lint before push
-make lint
-```
-
-#### Running Server CMD
-
-**Naively**
-```bash
-make server-run
-```
-
-**Properly**
-```bash
-make clean
-make fmt
-make vet
+# runs make clean fmt vet build execute
 make server
 # lint before push
 make lint
 ```
-
 ### Updating
 
 - Update go version in `golang/go.mod`

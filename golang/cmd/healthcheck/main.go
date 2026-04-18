@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,60 +14,71 @@ import (
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/requests"
-	"github.com/fiscalismia/fiscalismia-monitoring/internal/responses"
+	"github.com/fiscalismia/fiscalismia-monitoring/internal/server"
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/version"
 )
 
 func main() {
-	///// INIT GLOBAL LOGGING CONFIGURATION
-	syslogLevel := slog.LevelDebug
-	if os.Getenv("ENVIRONMENT") == "demo" || os.Getenv("ENVIRONMENT") == "prod" {
-		syslogLevel = slog.LevelInfo
+	///// GLOBAL LOGGING
+	level := slog.LevelDebug
+	if env := os.Getenv("ENVIRONMENT"); env == "demo" || env == "prod" {
+		level = slog.LevelInfo
 	}
-	handler := tint.NewHandler(os.Stderr, &tint.Options{
-		Level:      syslogLevel,
-		TimeFormat: time.Kitchen, // "3:04PM" — far less noisy than RFC3339
-	})
-	slog.SetDefault(slog.New(handler))
+	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, &tint.Options{
+		Level:      level,
+		TimeFormat: time.Kitchen,
+	})))
 
-	slog.Info("starting healthcheck", "version", version.Version, "commit", version.Commit, "buildTime", version.BuildTime)
+	slog.Info("starting fiscalismia-healthcheck",
+		"version", version.Version,
+		"commit", version.Commit,
+		"buildTime", version.BuildTime,
+	)
 
-	///// LOAD CONFIG
-	conf, err := config.Load("./targets.yml")
+	///// CONFIG — loaded once at startup, not on every request.
+	configPath := os.Getenv("HEALTHCHECK_CONFIG")
+	if configPath == "" {
+		configPath = "./targets.yml"
+	}
+	conf, err := config.Load(configPath)
 	if err != nil {
-		slog.Error("could not load config", "path", "./targets.yml", "err", err)
+		slog.Error("could not load config", "path", configPath, "err", err)
 		os.Exit(1)
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	///// HTTP CLIENT — constructed once, shared across handlers.
+	client := requests.CreateClient(conf.GlobalTimeout)
 
-	///// ACQUIRE EXTERNAL TARGETS (publicly reachable) from targets.yaml
-	var target *config.Target
-	var results []requests.Result
-	for _, t := range conf.Targets.External {
-		target = &t
-		var result requests.Result
-		client := requests.CreateClient(conf.GlobalTimeout)
-		switch target.Type {
-		case "http":
-			slog.Debug("[http] target acquired. Sending http query en route", "name", target.Name, "URL", target.URL)
-			result = client.QueryHTTP(ctx, target)
-			if target.X509Verify {
-				x509Verify := client.VerifyTLSCertificate(ctx, target, conf.RootDomain)
-				result.X509Info = x509Verify
-			}
-		case "tcp":
-			slog.Debug("[tcp] target acquired. Sending tcp query to host", "name", target.Name, "host", target.Host)
-			result = client.QueryTCP(ctx, target)
-		case "icmp":
-			slog.Debug("[icmp] target acquired. Try raw ICMP socket conn query", "name", target.Name, "host", target.Host)
-			result = client.QueryICMP(ctx, target)
+	///// SERVER
+	addr := os.Getenv("HEALTHCHECK_ADDR")
+	if addr == "" {
+		addr = "127.0.0.1:8445"
+	}
+	srv := server.New(addr, conf, client)
+
+	serverErr := make(chan error, 1)
+	go func() {
+		if err := srv.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
 		}
-		results = append(results, result)
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case err := <-serverErr:
+		slog.Error("server failed", "err", err)
+		os.Exit(1)
+	case sig := <-stop:
+		slog.Warn("received signal, shutting down", "signal", sig.String())
 	}
 
-	// ASCII format result from request
-	response := responses.ASCII(results)
-	fmt.Printf("%v\n", response)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		slog.Error("graceful shutdown failed", "err", err)
+		os.Exit(1)
+	}
+	slog.Info("server exited cleanly")
 }
