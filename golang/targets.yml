@@ -18,6 +18,10 @@ targets:
       url:  "https://172.20.0.2:8444/hc"
       type: http
 
+    - name: "Demo Golang Monitoring"
+      host: "172.20.0.2:8445"
+      type: http
+
     - name: "Demo Postgres"
       host: "172.20.0.2:5432"
       type: tcp
@@ -51,6 +55,11 @@ targets:
 
     - name: "Demo WebScraper"
       url:  "https://fastapi.demo.fiscalismia.com/fastapi/fiscalismia/hc"
+      type: http
+      x509_verify: true
+
+    - name: "Demo Golang Monitoring"
+      url:  "https://golang.demo.fiscalismia.com/goapi/fiscalismia/hc"
       type: http
       x509_verify: true
 
