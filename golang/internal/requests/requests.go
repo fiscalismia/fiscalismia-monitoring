@@ -63,18 +63,23 @@ type Client struct {
 func (c *Client) QueryHTTP(ctx context.Context, t *config.Target) Result {
 	start := time.Now()
 
+	// Apply Target timeout to Context
+	ctx, cancel := context.WithTimeout(ctx, t.Timeout)
+	defer cancel()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.URL, nil)
 	if err != nil {
 		return Result{Name: t.Name, URL: t.URL, Type: t.Type, Err: err}
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return Result{Name: t.Name, URL: t.URL, Type: t.Type, Err: err}
+		errLatency := time.Since(start)
+		return Result{Name: t.Name, URL: t.URL, Type: t.Type, Latency: errLatency, Err: err}
 	}
 	defer resp.Body.Close()
 
-	latency := time.Since(start)
 	body, err := io.ReadAll(io.LimitReader(resp.Body, READ_CAPACITY_BYTES))
+	latency := time.Since(start)
 	if err != nil {
 		return Result{Name: t.Name, URL: t.URL, Type: t.Type, StatusCode: resp.StatusCode, Latency: latency, Err: err}
 	}

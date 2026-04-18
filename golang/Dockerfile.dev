@@ -1,0 +1,15 @@
+# Dockerfile.dev
+FROM golang:1.25.9-alpine
+
+WORKDIR /fiscalismia-monitoring
+
+# Fetch dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Source is mounted via volume in docker-compose, so we don't COPY it here.
+
+# Same port as on remote instance
+EXPOSE 8445
+
+CMD ["go", "run", "./cmd/server"]

@@ -14,8 +14,9 @@ sudo dnf install -y --quiet golang
 cd ~/git/fiscalismia-monitoring/golang
 make tidy
 ```
+### Development
 
-### Running
+#### Running Healthcheck CMD
 
 **Naively**
 ```bash
@@ -28,8 +29,24 @@ make clean
 make fmt
 make vet
 make build
-make execute
+make healthcheck
 ```
+
+#### Running Server CMD
+
+**Naively**
+```bash
+make server-run
+```
+
+**Properly**
+```bash
+make clean
+make fmt
+make vet
+make server
+```
+
 
 ### Updating
 ### Testing

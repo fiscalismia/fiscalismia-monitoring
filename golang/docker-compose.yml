@@ -1,0 +1,29 @@
+volumes:
+  database-v:
+    name: "database-v"
+  go-build-cache:
+    name: "go-build-cache"
+  go-mod-cache:
+    name: "go-mod-cache"
+
+services:
+  fiscalismia-healthcheck:
+    image: fiscalismia-healthcheck-dev:latest
+    container_name: fiscalismia-healthcheck-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      pull: true
+    environment:
+      HEALTHCHECK_ADDR: "0.0.0.0:8445"
+      ENVIRONMENT: "dev"
+    volumes:
+      # Mount golang source code for rebuild-on-restart workflow.
+      - ./cmd:/fiscalismia-monitoring/cmd:z
+      - ./internal:/fiscalismia-monitoring/internal:z
+      - ./targets.yml:/fiscalismia-monitoring/targets.yml:ro,z
+      # Persist the Go build cache across container restarts to speed up performance
+      - go-build-cache:/root/.cache/go-build
+      - go-mod-cache:/go/pkg/mod
+    ports:
+      - "127.0.0.1:8445:8445/tcp"   # loopback-only on host for dev
