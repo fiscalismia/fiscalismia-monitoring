@@ -12,6 +12,7 @@ import (
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/requests"
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/responses"
+	"github.com/fiscalismia/fiscalismia-monitoring/internal/version"
 )
 
 func main() {
@@ -25,6 +26,8 @@ func main() {
 		TimeFormat: time.Kitchen, // "3:04PM" — far less noisy than RFC3339
 	})
 	slog.SetDefault(slog.New(handler))
+
+	slog.Info("starting healthcheck", "version", version.Version, "commit", version.Commit, "buildTime", version.BuildTime)
 
 	///// LOAD CONFIG
 	conf, err := config.Load("./targets.yml")

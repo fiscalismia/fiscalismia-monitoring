@@ -19,13 +19,14 @@ log_msg () {
 cd ../golang/
 
 log_msg "formatting go files"
-gofmt -s -w .
+make fmt
 
 log_msg "vetting go files"
-go vet ./...
+make vet
 
 log_msg "building go binary"
-go build ./cmd/healthcheck/
+make clean
+make build
 
 log_msg "creating remote project structure"
 ssh loadbalancer mkdir -p /usr/local/etc/go

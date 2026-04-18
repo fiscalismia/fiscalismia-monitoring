@@ -21,6 +21,7 @@ func ASCII(results []requests.Result) string {
 		var status string
 		detail := r.Body
 		if r.Err != nil {
+			status = "DOWN"
 			detail = r.Err.Error()
 		}
 		if r.Type == "http" && r.Err == nil {

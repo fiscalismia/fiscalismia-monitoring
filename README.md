@@ -12,21 +12,23 @@ Runs two monitoring services
 # Install go on fedora
 sudo dnf install -y --quiet golang
 cd ~/git/fiscalismia-monitoring/golang
-go mod tidy
+make tidy
 ```
 
 ### Running
 
 **Naively**
 ```bash
-go run ./cmd/healthcheck/
+make run
 ```
 
 **Properly**
 ```bash
-gofmt -s -w . && go vet ./...
-go build ./cmd/healthcheck/
-./healthcheck
+make clean
+make fmt
+make vet
+make build
+make execute
 ```
 
 ### Updating
