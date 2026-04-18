@@ -1,6 +1,9 @@
 # Fiscalismia Monitoring
 
-Unified Monitoring Endpoint written in Go, concurrently requesting health and status information from all available Fiscalismia Resources to output ASCII formatted data formatted for CLI client queries via e.g. curl from remote devices such as mobile phones, allowing an unified view of system landscape health.
+Runs two monitoring services
+1: unified HTTP Endpoint written in Go, concurrently requesting health and status information from the entire Fiscalismia System Landscape, returned as ASCII output to curl CLI queries.
+2: Grafana Dashboard with Prometheus Metrics, e.g. connection logging for incoming (via LB) and outgoing (via NAT-GW) requests.
+
 
 ## Golang Healthcheck
 ### Setup
@@ -32,6 +35,11 @@ go build ./cmd/healthcheck/
 ## Prometheus & Grafana
 
 ### Setup
+
+```bash
+# todo
+```
+
 ### Updating
 
 ## License

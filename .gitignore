@@ -5,4 +5,5 @@
 golang/healthcheck
 golang/healthcheck.exe
 .claude/
+CLAUDE.md
 .env
