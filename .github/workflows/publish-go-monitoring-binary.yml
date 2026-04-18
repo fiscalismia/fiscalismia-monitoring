@@ -43,6 +43,7 @@ jobs:
 
   snyk-security-scan:
     environment: prod # requires manual approval before running
+    timeout-minutes: 240 # Cancels the job if it isn't approved within 4 hours
     runs-on: ubuntu-latest
 
     permissions:
@@ -161,7 +162,7 @@ jobs:
           org.opencontainers.image.created=${{ env.BUILD_TIMESTAMP }}
           org.opencontainers.image.source=${{ github.repositoryUrl }}
           org.opencontainers.image.revision=${{ github.sha }}
-          org.opencontainers.image.description=Healthcheck HTTP server polling external/internal targets for system landscape health monitoring
+          org.opencontainers.image.description=Golang HTTP server concurrently polling external/internal targets for unified system landscape health monitoring
           org.opencontainers.image.licenses=MIT
 
     - name: Log in to Github Container Registry
