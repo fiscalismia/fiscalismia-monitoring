@@ -227,25 +227,27 @@ func (c *Client) VerifyTLSCertificate(ctx context.Context, t *config.Target, rd 
 		return X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: err}
 	}
 
-	config := &tls.Config{
+	tlsConfig := &tls.Config{
 		InsecureSkipVerify: false,
 	}
 
-	// Establish a TCP connection first
-	conn, err := tls.Dial("tcp", tlsUrl, config)
+	// Bound dial + handshake by the per-target timeout, and inherit cancellation
+	// from the parent ctx so SIGINT/SIGTERM aborts an in-flight connect.
+	dialCtx, cancel := context.WithTimeout(ctx, t.Timeout)
+	defer cancel()
+
+	dialer := &tls.Dialer{
+		NetDialer: &net.Dialer{},
+		Config:    tlsConfig,
+	}
+	conn, err := dialer.DialContext(dialCtx, "tcp", tlsUrl)
 	if err != nil {
 		return X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: err}
 	}
 	defer conn.Close()
 
-	// Perform SSL/TLS handshake
-	err = conn.Handshake()
-	if err != nil {
-		return X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: err}
-	}
-
-	// Retrieve the peer certificates
-	certs := conn.ConnectionState().PeerCertificates
+	tlsConn := conn.(*tls.Conn)
+	certs := tlsConn.ConnectionState().PeerCertificates
 
 	// Iterate and validate each certificate in the chain if tls verify flag is set in conf
 	for _, cert := range certs {

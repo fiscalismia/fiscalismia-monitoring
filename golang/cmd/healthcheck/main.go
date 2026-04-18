@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/lmittmann/tint"
@@ -36,7 +38,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx := context.Background() // TODO: replace with server http request context later
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	///// ACQUIRE EXTERNAL TARGETS (publicly reachable) from targets.yaml
 	var target *config.Target
