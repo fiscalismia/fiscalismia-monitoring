@@ -8,3 +8,12 @@ name: Fiscalismia-Monitoring Golang Healthcheck
 
 on:
   workflow_dispatch:
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout SCM
+      uses: actions/checkout@v6.0.2
+      # https://github.com/actions/checkout
