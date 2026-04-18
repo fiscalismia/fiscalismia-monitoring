@@ -30,9 +30,3 @@ linters:
     gosec:
       excludes:
         - G402        # we intentionally skip TLS verify for internal probes
-
-exclusions:
-  rules:
-    - path: _test\.go
-      linters:
-        - errcheck    # test files can ignore errors for brevity
