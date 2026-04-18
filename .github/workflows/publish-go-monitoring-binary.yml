@@ -28,6 +28,7 @@ jobs:
       run: go mod tidy
 
   snyk-security-scan:
+    environment: prod # requires manual approval before running
     runs-on: ubuntu-latest
 
     permissions:
@@ -136,7 +137,7 @@ jobs:
         tags: latest ${{ env.BUILD_VERSION }}
         context: ./golang
         containerfiles: |
-          ./golang/Dockerfile
+          ./golang/Dockerfile.dev
         build-args: |
           VERSION=${{ env.BUILD_VERSION }}
           COMMIT=${{ github.sha }}
