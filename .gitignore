@@ -1,4 +1,8 @@
 /healthcheck
 /healthcheck.exe
+/golang/healthcheck
+/golang/healthcheck.exe
+golang/healthcheck
+golang/healthcheck.exe
 .claude/
 .env
