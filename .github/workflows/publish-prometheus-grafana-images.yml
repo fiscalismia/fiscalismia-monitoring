@@ -1,0 +1,164 @@
+name: Fiscalismia-Monitoring Prometheus & Grafana
+
+# on:
+#   push:
+#     branches:
+#       - main
+#       - pipeline_testing
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-publish-image:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      actions: read
+      packages: write # to publish to ghcr.io
+
+    steps:
+    - name: Checkout SCM
+      uses: actions/checkout@v5
+      # https://github.com/actions/checkout
+
+    - name: AutoIncrement Version
+      run: |
+        echo "BUILD_VERSION=$(jq -r '.version' version.json)" >> $GITHUB_ENV
+
+    - name: Set Buildah Build Timestamp
+      shell: bash
+      run: |
+        # Store the current time in ISO 8601 format (required by OCI spec)
+        echo "BUILD_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+
+    - name: Buildah Image Creation - Prometheus
+      id: build-image-prometheus
+      uses: redhat-actions/buildah-build@v2.13
+      # https://github.com/redhat-actions/buildah-build/releases
+      with:
+        image: fiscalismia-monitoring-prometheus
+        tags: latest ${{ env.BUILD_VERSION }}
+        containerfiles: |
+          ./Dockerfile.Prometheus
+        # build-args: |
+        #   some_arg=some_value
+        labels: |
+          org.opencontainers.image.version=${{ env.BUILD_VERSION }}
+          org.opencontainers.image.created=${{ env.BUILD_TIMESTAMP }}
+          org.opencontainers.image.source=${{ github.repositoryUrl }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.description=Prometheus running as a container, ingesting metrics from ingress (Loadbalancer) and egress (NAT-Gateway) servers as well as Demo, Frontend and Backend Instances
+          org.opencontainers.image.licenses=MIT
+
+    - name: Buildah Image Creation - Grafana
+      id: build-image-grafana
+      uses: redhat-actions/buildah-build@v2.13
+      # https://github.com/redhat-actions/buildah-build/releases
+      with:
+        image: fiscalismia-monitoring-grafana
+        tags: latest ${{ env.BUILD_VERSION }}
+        containerfiles: |
+          ./Dockerfile.Grafana
+        # build-args: |
+        #   some_arg=some_value
+        labels: |
+          org.opencontainers.image.version=${{ env.BUILD_VERSION }}
+          org.opencontainers.image.created=${{ env.BUILD_TIMESTAMP }}
+          org.opencontainers.image.source=${{ github.repositoryUrl }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.description=Grafana Dashboard running as a container, ingesting metrics from ingress (Loadbalancer) and egress (NAT-Gateway) servers as well as Demo, Frontend and Backend Instances
+          org.opencontainers.image.licenses=MIT
+
+    - name: Log in to Github Container Registry
+      if: github.event_name == 'push'
+      uses: redhat-actions/podman-login@v1.7
+      # https://github.com/redhat-actions/podman-login/releases
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push Prometheus to Github Container Registry
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      id: push-to-ghcr-prometheus
+      uses: redhat-actions/push-to-registry@v2.8
+      # https://github.com/redhat-actions/push-to-registry/releases
+      with:
+        image: ${{ steps.build-image-prometheus.outputs.image }}
+        tags: ${{ steps.build-image-prometheus.outputs.tags }}
+        registry: ghcr.io/fiscalismia
+
+    - name: Push Grafana to Github Container Registry
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      id: push-to-ghcr-grafana
+      uses: redhat-actions/push-to-registry@v2.8
+      # https://github.com/redhat-actions/push-to-registry/releases
+      with:
+        image: ${{ steps.build-image-grafana.outputs.image }}
+        tags: ${{ steps.build-image-grafana.outputs.tags }}
+        registry: ghcr.io/fiscalismia
+
+    - name: Print image urls
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        echo "Image pushed to ${{ steps.push-to-ghcr-prometheus.outputs.registry-paths }}"
+        echo "Image pushed to ${{ steps.push-to-ghcr-grafana.outputs.registry-paths }}"
+
+  snyk-container-scan:
+    needs: build-and-publish-image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read          # to pull from ghcr.io
+      security-events: write  # required for SARIF upload to GitHub Code Scanning
+
+    steps:
+    - name: Checkout SCM
+      uses: actions/checkout@v5
+      # https://github.com/actions/checkout
+
+    - name: Log in to Github Container Registry
+      uses: redhat-actions/podman-login@v1.7
+      # https://github.com/redhat-actions/podman-login/releases
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Snyk Container Analysis - Prometheus Image
+      uses: snyk/actions/docker@master
+      # https://github.com/snyk/actions/tree/master/docker
+      # https://docs.snyk.io/developer-tools/snyk-ci-cd-integrations/github-actions-for-snyk-setup-and-checking-for-vulnerabilities/snyk-docker-action
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: ghcr.io/fiscalismia/fiscalismia-monitoring-prometheus:latest
+        args: --org=fcdd9ceb-9451-4b30-a447-8d8f9ffa2980
+              --file=Dockerfile
+              --severity-threshold=high
+
+    - name: Snyk Container Analysis - Grafana Image
+      uses: snyk/actions/docker@master
+      # https://github.com/snyk/actions/tree/master/docker
+      # https://docs.snyk.io/developer-tools/snyk-ci-cd-integrations/github-actions-for-snyk-setup-and-checking-for-vulnerabilities/snyk-docker-action
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: ghcr.io/fiscalismia/fiscalismia-monitoring-grafana:latest
+        args: --org=fcdd9ceb-9451-4b30-a447-8d8f9ffa2980
+              --file=Dockerfile
+              --severity-threshold=high
+
+    - name: Upload Snyk Container SARIF
+      if: always()
+      uses: github/codeql-action/upload-sarif@v4
+      # https://docs.github.com/en/code-security/how-tos/scan-code-for-vulnerabilities/integrate-with-existing-tools/uploading-a-sarif-file-to-github
+      with:
+        sarif_file: snyk.sarif
+        category: snyk-container

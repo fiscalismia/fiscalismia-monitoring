@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-cd ~/git/fiscalismia-monitoring
+cd ~/git/fiscalismia-monitoring/golang
 gofmt -s -w .
 go vet ./...
 go build ./cmd/healthcheck/
