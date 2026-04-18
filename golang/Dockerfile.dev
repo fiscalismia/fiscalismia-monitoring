@@ -1,5 +1,5 @@
 # Dockerfile.dev
-FROM golang:1.25.9-alpine
+FROM docker.io/library/golang:1.25.9-alpine
 
 WORKDIR /fiscalismia-monitoring
 

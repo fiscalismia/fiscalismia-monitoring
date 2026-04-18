@@ -16,7 +16,8 @@ LDFLAGS   := -s -w \
             -X '$(PKG).Commit=$(COMMIT)' \
             -X '$(PKG).BuildTime=$(BUILDTIME)'
 
-.PHONY: build run test lint fmt tidy docker clean
+## phony marks these commands as independent of files on the system .e.g. the healthcheck would otherwise not run if a healthcheck binary file is present
+.PHONY: build run lint fmt vet tidy docker clean healthcheck server-build server server-run
 
 ##          ___           ___       __        ___  __
 ##    |__| |__   /\  |     |  |__| /  ` |__| |__  /  ` |__/

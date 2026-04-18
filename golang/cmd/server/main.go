@@ -47,7 +47,7 @@ func main() {
 		}
 	}()
 
-	// Listen for SIGINT (Ctrl+C) and SIGTERM (Podman/K8s stop).
+	// Listen for SIGINT (Ctrl+C) and SIGTERM (Podman stop).
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
@@ -56,7 +56,7 @@ func main() {
 		slog.Error("server failed", "err", err)
 		os.Exit(1)
 	case sig := <-stop:
-		slog.Info("received signal, shutting down", "signal", sig.String())
+		slog.Warn("received signal, shutting down", "signal", sig.String())
 	}
 
 	// Give in-flight requests 10s to complete, then force-close.

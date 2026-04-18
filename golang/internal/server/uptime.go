@@ -10,9 +10,6 @@ import (
 )
 
 // readHostUptime parses /proc/uptime. In a container, this reflects the host
-// by default because the procfs /proc/uptime entry is not virtualized by
-// PID namespaces — only by tools like LXCFS. In your Podman setup you'll
-// see host uptime, which is what you want for monitoring.
 func readHostUptime() (time.Duration, error) {
 	if runtime.GOOS != "linux" {
 		return 0, errors.New("host uptime only implemented for linux")

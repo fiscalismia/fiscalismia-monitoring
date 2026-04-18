@@ -62,7 +62,7 @@ jobs:
           org.opencontainers.image.created=${{ env.BUILD_TIMESTAMP }}
           org.opencontainers.image.source=${{ github.repositoryUrl }}
           org.opencontainers.image.revision=${{ github.sha }}
-          org.opencontainers.image.description=Healthcheck HTTP server polling external/internal targets and exposing /goapi/fiscalismia/hc for Prometheus scraping
+          org.opencontainers.image.description=Healthcheck HTTP server polling external/internal targets for system landscape health monitoring
           org.opencontainers.image.licenses=MIT
 
     - name: Log in to Github Container Registry
