@@ -30,6 +30,8 @@ make fmt
 make vet
 make build
 make healthcheck
+# lint before push
+make lint
 ```
 
 #### Running Server CMD
@@ -45,10 +47,17 @@ make clean
 make fmt
 make vet
 make server
+# lint before push
+make lint
 ```
 
-
 ### Updating
+
+- Update go version in `golang/go.mod`
+- ??? Update dependencies in `golang/go.mod`
+- Update `GOLINT_V` podman version in `golang/Makefile`
+- Update `version` in `Lint with golangci-lint` job in pipeline
+
 ### Testing
 
 ## Prometheus & Grafana

@@ -2,6 +2,7 @@
 # Go convention: Makefiles are thin wrappers around go commands.
 # Unlike npm scripts, Go's toolchain is batteries-included, so
 # the Makefile mostly just saves you from remembering flags.
+GOLINT_V  := v2.11.4
 BINARY    := healthcheck
 CMD       := ./cmd/healthcheck/
 SRV_BINARY:= healthcheck-server
@@ -28,7 +29,7 @@ run: build
 
 ## lint: run golangci-lint with project config
 lint:
-	golangci-lint run
+	podman run -t --rm -v $(shell pwd):/app:z -w /app docker.io/golangci/golangci-lint:${GOLINT_V} golangci-lint run
 
 ## fmt: format all Go files (gofmt is the universal standard, never deviate)
 fmt:
