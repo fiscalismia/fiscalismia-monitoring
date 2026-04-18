@@ -24,6 +24,7 @@ jobs:
         cache-dependency-path: '/golang/go.sum'
 
     - name: Install Dependencies
+      working-directory: ./golang
       run: go mod tidy
 
   snyk-security-scan:
@@ -47,6 +48,7 @@ jobs:
         cache-dependency-path: '/golang/go.sum'
 
     - name: Install Dependencies
+      working-directory: ./golang
       run: go mod tidy
 
     - name: Set up Snyk CLI
@@ -54,16 +56,16 @@ jobs:
       # https://github.com/snyk/actions/tree/master/setup
 
     - name: Snyk Dependency Security Analysis
+      working-directory: ./golang
       continue-on-error: true  # don't block the pipeline; review results in GitHub Security tab
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       run: |
-        cd ${GITHUB_WORKSPACE}/golang/
         snyk test \
           --file=go.mod \
           --org=fcdd9ceb-9451-4b30-a447-8d8f9ffa2980 \
           --severity-threshold=high \
-          --sarif-file-output=snyk-open-source.sarif
+          --sarif-file-output=${GITHUB_WORKSPACE}/snyk-open-source.sarif
 
     - name: Upload Snyk Open Source SARIF
       if: always()
@@ -74,6 +76,7 @@ jobs:
         category: snyk-open-source
 
     - name: Snyk Static Code Security Analysis
+      working-directory: ./golang
       continue-on-error: true
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -81,7 +84,7 @@ jobs:
         snyk code test \
           --org=fcdd9ceb-9451-4b30-a447-8d8f9ffa2980 \
           --severity-threshold=high \
-          --sarif-file-output=snyk-code.sarif
+          --sarif-file-output=${GITHUB_WORKSPACE}/snyk-code.sarif
 
     - name: Upload Snyk Code SARIF
       if: always()
