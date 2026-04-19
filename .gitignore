@@ -5,3 +5,4 @@ golang/healthcheck-server.exe
 .claude/
 CLAUDE.md
 .env
+golang/tmp/

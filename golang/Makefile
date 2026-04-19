@@ -9,6 +9,7 @@ IMAGE     := ghcr.io/fiscalismia/fiscalismia-healthcheck
 VERSION   := $(shell jq -r '.version' version.json)
 COMMIT    := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 BUILDTIME := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+PROJECT   := github.com/fiscalismia/fiscalismia-monitoring
 PKG       := github.com/fiscalismia/fiscalismia-monitoring/internal/version
 LDFLAGS   := -s -w \
             -X '$(PKG).Version=$(VERSION)' \
@@ -25,6 +26,17 @@ tidy:
 ## naively run the main directly
 run:
 	go run $(CMD)
+
+## air: hot module reload during development, overwrite HEALTHCHECK_ADDR to not use loopback for container
+air:
+	podman run -it --rm \
+		-w $(shell pwd) \
+		-v $(shell pwd):$(shell pwd) \
+		-p 8445:8445 \
+		-e "HEALTHCHECK_ADDR=0.0.0.0:8445" \
+    -e "ENVIRONMENT=air" \
+		docker.io/cosmtrek/air:v1.65.1 \
+		-c "$(shell pwd)/.air.toml"
 
 ## lint: run golangci-lint with project config
 lint:

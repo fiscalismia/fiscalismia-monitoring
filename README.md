@@ -15,12 +15,25 @@ make tidy
 
 ### Development
 
+**Compiles automatically via Hot Module Replacement:**
+
+```bash
+make air
+```
+
+**Compile manually with each change:**
+
 ```bash
 # runs make clean fmt vet build execute
 make server
-# lint before push
+```
+
+**INFO:** lint before push
+
+```bash
 make lint
 ```
+
 ### Updating
 
 - Update go version in `golang/go.mod`

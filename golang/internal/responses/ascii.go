@@ -2,6 +2,7 @@ package responses
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -46,6 +47,7 @@ func ASCII(results []requests.Result) string {
 	}
 	builder.WriteString(divider + "\n")
 
+	slog.Debug("Finished constructing ASCII response with", "lines", len(results))
 	return builder.String()
 }
 
