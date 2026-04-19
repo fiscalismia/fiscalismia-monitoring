@@ -53,13 +53,13 @@ podman build \
   --build-arg VERSION=local \
   --build-arg BUILD_TIME="$(date)" \
   --build-arg COMMIT="$(git rev-parse --short HEAD)" \
-  -t health:latest \
+  -t fiscalismia-healthcheck-demo:latest \
   "."
 podman run --rm \
   -p 8445:8445 \
   --name fiscalismia-healthcheck \
   -e "HEALTHCHECK_ADDR=0.0.0.0:8445" \
-  health:latest
+  fiscalismia-healthcheck-demo:latest
 ```
 
 ## Prometheus & Grafana

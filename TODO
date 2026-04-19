@@ -1,0 +1,4 @@
+# Todo List for [Fiscalismia Monitoring]
+
+### High Prio
+- Remove continue-on-error: true in linting job

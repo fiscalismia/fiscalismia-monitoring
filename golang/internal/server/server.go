@@ -2,9 +2,11 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
@@ -39,7 +41,22 @@ func New(addr string, conf *config.Config, client *requests.Client) *Server {
 	mux := http.NewServeMux()
 	s.registerRoutes(mux)
 
+	// initialize empty TLS config
+	tlsConf := &tls.Config{}
+	// Seed TLS Config only on deployed environments
+	if env := os.Getenv("ENVIRONMENT"); env == "demo" || env == "prod" {
+		slog.Debug("Deployed Environment: Initializing TLS Config.")
+		cer, err := tls.LoadX509KeyPair("/etc/ssl/certs/fullchain.pem", "/etc/ssl/certs/privkey.pem")
+		if err != nil {
+			slog.Error("X509 certificate pair not loaded.", "err", err)
+		}
+		tlsConf.MinVersion = tls.VersionTLS13
+		tlsConf.Certificates = []tls.Certificate{cer}
+		tlsConf.CurvePreferences = []tls.CurveID{tls.CurveP521, tls.CurveP384}
+	}
+
 	s.httpServer = &http.Server{
+		TLSConfig:         tlsConf,
 		Addr:              addr,
 		Handler:           mux,
 		ReadHeaderTimeout: 2 * time.Second,
