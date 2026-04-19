@@ -4,6 +4,7 @@
 FROM docker.io/library/golang:1.25.9-alpine AS build
 
 # initialize global scope build args by supplying --build-arg flag in podman build
+ARG ENVIRONMENT
 ARG VERSION
 ARG COMMIT
 ARG BUILD_TIME
@@ -39,8 +40,10 @@ FROM --platform=linux/amd64 gcr.io/distroless/static-debian13:nonroot
 
 WORKDIR /fiscalismia-healthcheck
 
-COPY --from=build /build-dir/targets.yml /build-dir/healthcheck ./
+COPY --from=build /build-dir/targets-demo.yml /build-dir/targets-prod.yml /build-dir/healthcheck ./
 
+# consume build arguments to expose them in subsequent stages
+ARG ENVIRONMENT
 # environment variables passed to run command / in docker-compose.yml
 ENV HEALTHCHECK_ADDR=$HEALTHCHECK_ADDR
 ENV ENVIRONMENT=$ENVIRONMENT

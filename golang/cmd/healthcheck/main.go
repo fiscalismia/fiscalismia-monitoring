@@ -37,8 +37,11 @@ func main() {
 
 	///// CONFIG — loaded once at startup, not on every request.
 	configPath := os.Getenv("HEALTHCHECK_CONFIG")
-	if configPath == "" {
-		configPath = "./targets.yml"
+	if env := os.Getenv("ENVIRONMENT"); env == "production" {
+		slog.Debug("[prod] Environment target.yml override")
+		configPath = "./targets-prod.yml"
+	} else {
+		configPath = "./targets-demo.yml"
 	}
 	conf, err := config.Load(configPath)
 	if err != nil {

@@ -64,4 +64,5 @@ execute:
 	./$(BINARY)
 
 ## server: full localhost build pipeline integrating all make commands
-server: clean fmt vet build execute
+server: clean fmt vet build
+	ENVIRONMENT=dev ./$(BINARY)

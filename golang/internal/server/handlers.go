@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
@@ -20,6 +21,7 @@ type healthResponse struct {
 	Version      string `json:"version"`
 	Commit       string `json:"commit"`
 	BuildTime    string `json:"build_time"`
+	Environment  string `json:"environment"`
 	ServerUptime string `json:"server_uptime"`
 	HostUptime   string `json:"host_uptime"`
 }
@@ -46,6 +48,7 @@ func (s *Server) handleHealthcheck(w http.ResponseWriter, r *http.Request) {
 		Version:      version.Version,
 		Commit:       version.Commit,
 		BuildTime:    version.BuildTime,
+		Environment:  os.Getenv("ENVIRONMENT"),
 		ServerUptime: time.Since(s.startTime).Round(time.Second).String(),
 		HostUptime:   hostUptimeStr,
 	}

@@ -24,7 +24,7 @@ make air
 **Compile manually with each change:**
 
 ```bash
-# runs make clean fmt vet build execute
+# runs make clean fmt vet build ENVIRONMENT=dev ./${BINARY}
 make server
 ```
 
@@ -49,6 +49,7 @@ make lint
 ```bash
 podman build \
   -f "Dockerfile" \
+  --build-arg ENVIRONMENT=demo \
   --build-arg VERSION=local \
   --build-arg BUILD_TIME="$(date)" \
   --build-arg COMMIT="$(git rev-parse --short HEAD)" \
@@ -57,7 +58,6 @@ podman build \
 podman run --rm \
   -p 8445:8445 \
   --name fiscalismia-healthcheck \
-  -e "ENVIRONMENT=dev" \
   -e "HEALTHCHECK_ADDR=0.0.0.0:8445" \
   health:latest
 ```

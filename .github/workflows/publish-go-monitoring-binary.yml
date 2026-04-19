@@ -134,17 +134,18 @@ jobs:
         # Store the current time in ISO 8601 format (required by OCI spec)
         echo "BUILD_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
 
-    - name: Buildah Image Creation - Healthcheck
-      id: build-image-healthcheck
+    - name: Buildah Image Creation - Demo
+      id: build-demo-image
       uses: redhat-actions/buildah-build@v2.13
       # https://github.com/redhat-actions/buildah-build/releases
       with:
-        image: fiscalismia-monitoring-healthcheck
+        image: fiscalismia-healthcheck-demo
         tags: latest ${{ env.BUILD_VERSION }}
         context: ./golang
         containerfiles: |
-          ./golang/Dockerfile.dev
+          ./golang/Dockerfile
         build-args: |
+          ENVIRONMENT=demo
           VERSION=${{ env.BUILD_VERSION }}
           COMMIT=${{ github.sha }}
           BUILD_TIME=${{ env.BUILD_TIMESTAMP }}
@@ -153,7 +154,30 @@ jobs:
           org.opencontainers.image.created=${{ env.BUILD_TIMESTAMP }}
           org.opencontainers.image.source=${{ github.repositoryUrl }}
           org.opencontainers.image.revision=${{ github.sha }}
-          org.opencontainers.image.description=Golang HTTP server concurrently polling external/internal targets for unified system landscape health monitoring
+          org.opencontainers.image.description=Demo Golang HTTP server concurrently polling external/internal targets for unified system landscape health monitoring
+          org.opencontainers.image.licenses=MIT
+
+    - name: Buildah Image Creation - Production
+      id: build-production-image
+      uses: redhat-actions/buildah-build@v2.13
+      # https://github.com/redhat-actions/buildah-build/releases
+      with:
+        image: fiscalismia-healthcheck
+        tags: latest ${{ env.BUILD_VERSION }}
+        context: ./golang
+        containerfiles: |
+          ./golang/Dockerfile
+        build-args: |
+          ENVIRONMENT=production
+          VERSION=${{ env.BUILD_VERSION }}
+          COMMIT=${{ github.sha }}
+          BUILD_TIME=${{ env.BUILD_TIMESTAMP }}
+        labels: |
+          org.opencontainers.image.version=${{ env.BUILD_VERSION }}
+          org.opencontainers.image.created=${{ env.BUILD_TIMESTAMP }}
+          org.opencontainers.image.source=${{ github.repositoryUrl }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.description=Production Golang HTTP server concurrently polling external/internal targets for unified system landscape health monitoring
           org.opencontainers.image.licenses=MIT
 
     - name: Log in to Github Container Registry
@@ -165,17 +189,28 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Push Healthcheck to Github Container Registry
+    - name: Push Demo Image to GHCR
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      id: push-to-ghcr-healthcheck
+      id: push-demo-to-ghcr
       uses: redhat-actions/push-to-registry@v2.8
       # https://github.com/redhat-actions/push-to-registry/releases
       with:
-        image: ${{ steps.build-image-healthcheck.outputs.image }}
-        tags: ${{ steps.build-image-healthcheck.outputs.tags }}
+        image: ${{ steps.build-demo-image.outputs.image }}
+        tags: ${{ steps.build-demo-image.outputs.tags }}
+        registry: ghcr.io/fiscalismia
+
+    - name: Push Production Image to GHCR
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      id: push-prod-to-ghcr
+      uses: redhat-actions/push-to-registry@v2.8
+      # https://github.com/redhat-actions/push-to-registry/releases
+      with:
+        image: ${{ steps.build-production-image.outputs.image }}
+        tags: ${{ steps.build-production-image.outputs.tags }}
         registry: ghcr.io/fiscalismia
 
     - name: Print image url
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
-        echo "Image pushed to ${{ steps.push-to-ghcr-healthcheck.outputs.registry-paths }}"
+        echo "Production Image pushed to ${{ steps.push-prod-to-ghcr.outputs.registry-paths }}"
+        echo "Demo Image pushed to ${{ steps.push-demo-to-ghcr.outputs.registry-paths }}"
