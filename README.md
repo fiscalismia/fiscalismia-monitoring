@@ -49,14 +49,17 @@ make lint
 ```bash
 podman build \
   -f "Dockerfile" \
-  --build-arg ENVIRONMENT=dev \
   --build-arg VERSION=local \
-  --build-arg HEALTHCHECK_ADDR=0.0.0.0:8445 \
   --build-arg BUILD_TIME="$(date)" \
   --build-arg COMMIT="$(git rev-parse --short HEAD)" \
   -t health:latest \
   "."
-podman run -p 8445:8445 --rm --name fiscalismia-healthcheck health:latest
+podman run --rm \
+  -p 8445:8445 \
+  --name fiscalismia-healthcheck \
+  -e "ENVIRONMENT=dev" \
+  -e "HEALTHCHECK_ADDR=0.0.0.0:8445" \
+  health:latest
 ```
 
 ## Prometheus & Grafana

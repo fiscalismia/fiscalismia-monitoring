@@ -7,8 +7,6 @@ FROM docker.io/library/golang:1.25.9-alpine AS build
 ARG VERSION
 ARG COMMIT
 ARG BUILD_TIME
-ARG HEALTHCHECK_ADDR
-ARG ENVIRONMENT
 
 WORKDIR /build-dir
 
@@ -43,10 +41,7 @@ WORKDIR /fiscalismia-healthcheck
 
 COPY --from=build /build-dir/targets.yml /build-dir/healthcheck ./
 
-# consume build arguments to expose them in subsequent stages
-ARG HEALTHCHECK_ADDR
-ARG ENVIRONMENT
-# init environment variables /w build arguments, then read in supervisord.conf
+# environment variables passed to run command / in docker-compose.yml
 ENV HEALTHCHECK_ADDR=$HEALTHCHECK_ADDR
 ENV ENVIRONMENT=$ENVIRONMENT
 
