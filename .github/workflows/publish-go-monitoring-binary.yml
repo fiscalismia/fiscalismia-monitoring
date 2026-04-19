@@ -215,3 +215,47 @@ jobs:
       run: |
         echo "Production Image pushed to ${{ steps.push-prod-to-ghcr.outputs.registry-paths }}"
         echo "Demo Image pushed to ${{ steps.push-demo-to-ghcr.outputs.registry-paths }}"
+
+  snyk-container-scan:
+    needs: build-and-publish-image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read          # to pull from ghcr.io
+      security-events: write  # required for SARIF upload to GitHub Code Scanning
+
+    steps:
+    - name: Checkout SCM
+      uses: actions/checkout@v6.0.2
+      # https://github.com/actions/checkout
+
+    - name: Log in to Github Container Registry
+      uses: redhat-actions/podman-login@v1.7
+      # https://github.com/redhat-actions/podman-login/releases
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Snyk Container Analysis - Production Image
+      uses: snyk/actions/docker@master
+      # https://github.com/snyk/actions/tree/master/docker
+      # https://docs.snyk.io/developer-tools/snyk-ci-cd-integrations/github-actions-for-snyk-setup-and-checking-for-vulnerabilities/snyk-docker-action
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: ghcr.io/fiscalismia/fiscalismia-healthcheck:latest
+        args: --org=fcdd9ceb-9451-4b30-a447-8d8f9ffa2980
+              --file=Dockerfile
+              --severity-threshold=high
+
+    - name: Upload Snyk Container SARIF
+      if: always()
+      uses: github/codeql-action/upload-sarif@v4
+      # https://docs.github.com/en/code-security/how-tos/scan-code-for-vulnerabilities/integrate-with-existing-tools/uploading-a-sarif-file-to-github
+      with:
+        sarif_file: snyk.sarif
+        category: snyk-container
