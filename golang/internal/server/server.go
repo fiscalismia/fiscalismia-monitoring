@@ -31,9 +31,9 @@ type Server struct {
 	client *requests.Client
 
 	// initialized conditionally based on deployed environment
-	tlsEnabled bool
-	hostname   string
-	protocol   string
+	isRemote bool
+	hostname string
+	protocol string
 }
 
 // New wires the HTTP server with its dependencies. Note we accept the
@@ -42,36 +42,36 @@ func New(addr string, conf *config.Config, client *requests.Client) *Server {
 
 	///// CONDITIONAL LOGIC BASED ON ENVIRONMENT
 	env := os.Getenv("ENVIRONMENT")
-	var tlsCert bool
+	var remoteSrv bool
 	var hostname string
 	var protocol string
 	switch env {
 	case "production":
 		protocol = "https"
 		hostname = "golang.monitoring.fiscalismia.com"
-		tlsCert = true
+		remoteSrv = true
 	case "demo":
 		protocol = "https"
 		hostname = "golang.demo.fiscalismia.com"
-		tlsCert = true
+		remoteSrv = true
 	default:
 		protocol = "http"
 		hostname = addr
 	}
 
 	s := &Server{
-		startTime:  time.Now(),
-		config:     conf,
-		client:     client,
-		tlsEnabled: tlsCert,
-		hostname:   hostname,
-		protocol:   protocol,
+		startTime: time.Now(),
+		config:    conf,
+		client:    client,
+		isRemote:  remoteSrv,
+		hostname:  hostname,
+		protocol:  protocol,
 	}
 
 	// initialize empty TLS config
 	tlsConf := &tls.Config{}
 	// Seed TLS Config only on deployed environments
-	if s.tlsEnabled {
+	if s.isRemote {
 		slog.Debug("X509 serving Environment detected: Initializing TLS Config.")
 		cer, err := tls.LoadX509KeyPair("/etc/ssl/certs/fullchain.pem", "/etc/ssl/certs/privkey.pem")
 		if err != nil {
@@ -121,7 +121,7 @@ func (s *Server) Start() error {
 	)
 
 	var startupError error
-	if s.tlsEnabled {
+	if s.isRemote {
 		// DEPLOYED TLS HTTPS PROXY PROTOCOL V2 SERVER
 		ln, err := net.Listen("tcp", s.httpServer.Addr)
 		if err != nil {

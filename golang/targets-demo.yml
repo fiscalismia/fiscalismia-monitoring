@@ -7,27 +7,23 @@ targets:
 
   internal:
     - name: "Demo Frontend"
-      url:  "https://172.20.0.2:443/"
-      type: http
+      host: "172.20.0.2:443"
+      type: tcp
 
     - name: "Demo Backend"
-      url:  "https://172.20.0.2:8443/api/fiscalismia/hc"
-      type: http
+      host:  "172.20.0.2:8443"
+      type: tcp
 
     - name: "Demo WebScraper"
-      url:  "https://172.20.0.2:8444/hc"
-      type: http
+      host:  "172.20.0.2:8444"
+      type: tcp
 
     - name: "Demo Golang Health"
       host: "172.20.0.2:8445"
-      type: http
+      type: tcp
 
     - name: "Demo Postgres"
       host: "172.20.0.2:5432"
-      type: tcp
-
-    - name: "Demo PKI"
-      host: "172.20.0.2:9000"
       type: tcp
 
     - name: "Loadbalancer"
@@ -35,12 +31,12 @@ targets:
       type: tcp
 
     - name: "Bastion Host"
-      host: "172.20.1.2:22"
-      type: tcp
+      host: "172.20.1.2"
+      type: icmp
 
     - name: "NAT Gateway"
-      host: "172.20.1.4:443"
-      type: tcp
+      host: "172.20.1.4"
+      type: icmp
 
   external:
     - name: "Demo Frontend"
@@ -71,9 +67,10 @@ targets:
       host: "46.225.239.49:443"
       type: tcp
 
+    # Demo instance does not have port 22 egress allowed in nftables, ping as fallback
     - name: "Bastion Host"
-      host: "46.224.30.190:22"
-      type: tcp
+      host: "46.224.30.190"
+      type: icmp
 
     - name: "NAT Gateway"
       host: "49.13.166.73"

@@ -59,11 +59,14 @@ func (s *Server) handleHealthcheck(w http.ResponseWriter, r *http.Request) {
 // every target from targets.yml and returns an ASCII status table.
 func (s *Server) handleInfrastructureHealth(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("GET request received to", "route", ROUTE_FISCALISMIA_HEALTH)
-
+	results := s.probeTargets(r.Context(), s.config.Targets.External)
+	if s.isRemote {
+		slog.Info("Remote Deployment detected. Running internal network probes...")
+		internal := s.probeTargets(r.Context(), s.config.Targets.Internal)
+		results = append(results, internal...)
+	}
 	// r.Context() is cancelled if the client disconnects. Propagating
 	// it downstream means in-flight probes terminate instead of leaking
-	results := s.probeTargets(r.Context(), s.config.Targets.External)
-
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
