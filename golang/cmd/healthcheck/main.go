@@ -21,7 +21,7 @@ import (
 func main() {
 	///// GLOBAL LOGGING
 	level := slog.LevelDebug
-	if env := os.Getenv("ENVIRONMENT"); env == "demo" || env == "prod" {
+	if env := os.Getenv("ENVIRONMENT"); env == "production" {
 		level = slog.LevelInfo
 	}
 	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, &tint.Options{
