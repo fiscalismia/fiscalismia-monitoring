@@ -111,6 +111,7 @@ jobs:
         category: snyk-code
 
   build-and-publish-image:
+    needs: code-quality
     runs-on: ubuntu-latest
 
     permissions:
