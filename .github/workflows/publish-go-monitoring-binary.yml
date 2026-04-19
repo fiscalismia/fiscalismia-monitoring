@@ -250,7 +250,7 @@ jobs:
       with:
         image: ghcr.io/fiscalismia/fiscalismia-healthcheck:latest
         args: --org=fcdd9ceb-9451-4b30-a447-8d8f9ffa2980
-              --file=Dockerfile
+              --file=./golang/Dockerfile
               --severity-threshold=high
 
     - name: Upload Snyk Container SARIF

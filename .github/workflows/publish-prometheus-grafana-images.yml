@@ -139,7 +139,7 @@ jobs:
       with:
         image: ghcr.io/fiscalismia/fiscalismia-monitoring-prometheus:latest
         args: --org=fcdd9ceb-9451-4b30-a447-8d8f9ffa2980
-              --file=Dockerfile
+              --file=./prometheus_grafana/Dockerfile.prometheus
               --severity-threshold=high
 
     - name: Snyk Container Analysis - Grafana Image
@@ -152,7 +152,7 @@ jobs:
       with:
         image: ghcr.io/fiscalismia/fiscalismia-monitoring-grafana:latest
         args: --org=fcdd9ceb-9451-4b30-a447-8d8f9ffa2980
-              --file=Dockerfile
+              --file=./prometheus_grafana/Dockerfile.grafana
               --severity-threshold=high
 
     - name: Upload Snyk Container SARIF
