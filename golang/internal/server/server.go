@@ -70,7 +70,14 @@ func New(addr string, conf *config.Config, client *requests.Client) *Server {
 }
 
 func (s *Server) registerRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET "+ROUTE_ROOT_INFO, s.handleRootPath)
+	mux.HandleFunc("GET "+ROUTE_ROOT_INFO, func(w http.ResponseWriter, r *http.Request) {
+		// sinkhols erroneous paths, root path is NOT a fallback, only exact matches get routed.
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		s.handleRootPath(w, r)
+	})
 	mux.HandleFunc("GET "+ROUTE_GOLANG_HEALTH, s.handleHealthcheck)
 	mux.HandleFunc("GET "+ROUTE_FISCALISMIA_HEALTH, s.handleInfrastructureHealth)
 }
@@ -78,6 +85,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 func (s *Server) Start() error {
 	slog.Info("http server listening",
 		"addr", s.httpServer.Addr,
+		"env", os.Getenv("ENVIRONMENT"),
 		"health", ROUTE_GOLANG_HEALTH,
 		"infra", ROUTE_FISCALISMIA_HEALTH,
 	)

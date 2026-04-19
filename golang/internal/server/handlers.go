@@ -52,8 +52,7 @@ func (s *Server) handleHealthcheck(w http.ResponseWriter, r *http.Request) {
 		ServerUptime: time.Since(s.startTime).Round(time.Second).String(),
 		HostUptime:   hostUptimeStr,
 	}
-
-	writeJSON(w, resp)
+	writeJSON(w, r.URL.Path, resp)
 }
 
 // handleInfrastructureHealth is the expensive endpoint — it probes
@@ -68,6 +67,7 @@ func (s *Server) handleInfrastructureHealth(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	slog.Info("Sending ASCII response on invocation of", "path", r.URL.Path)
 	if _, err := io.WriteString(w, responses.ASCII(results)); err != nil {
 		slog.Error("write infrastructure response failed", "err", err)
 	}
@@ -75,7 +75,7 @@ func (s *Server) handleInfrastructureHealth(w http.ResponseWriter, r *http.Reque
 
 func (s *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("root path request", "route", ROUTE_ROOT_INFO)
-	writeJSON(w, rootInfo{
+	writeJSON(w, r.URL.Path, rootInfo{
 		Info:     "Fiscalismia Go HTTP monitoring server.",
 		Endpoint: "/goapi/fiscalismia/",
 		Health:   ROUTE_GOLANG_HEALTH,
@@ -129,10 +129,11 @@ func (s *Server) probeOne(ctx context.Context, t config.Target) requests.Result 
 }
 
 // writeJSON is a small helper function for responses
-func writeJSON(w http.ResponseWriter, v any) {
+func writeJSON(w http.ResponseWriter, path string, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	slog.Debug("Sending JSON response on invocation of", "path", path)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
 		slog.Error("json encode failed", "err", err)
 	}
