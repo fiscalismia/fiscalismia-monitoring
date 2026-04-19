@@ -2,3 +2,4 @@
 
 ### High Prio
 - Remove continue-on-error: true in linting job
+- remove tls_test on server startup

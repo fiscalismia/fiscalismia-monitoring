@@ -44,8 +44,8 @@ func New(addr string, conf *config.Config, client *requests.Client) *Server {
 	// initialize empty TLS config
 	tlsConf := &tls.Config{}
 	// Seed TLS Config only on deployed environments
-	if env := os.Getenv("ENVIRONMENT"); env == "demo" || env == "prod" {
-		slog.Debug("Deployed Environment: Initializing TLS Config.")
+	if env := os.Getenv("ENVIRONMENT"); env == "demo" || env == "prod" || env == "tls_test" {
+		slog.Debug("X509 serving Environment detected: Initializing TLS Config.")
 		cer, err := tls.LoadX509KeyPair("/etc/ssl/certs/fullchain.pem", "/etc/ssl/certs/privkey.pem")
 		if err != nil {
 			slog.Error("X509 certificate pair not loaded.", "err", err)
