@@ -27,15 +27,43 @@ type Server struct {
 	// package can reach them — external callers construct via New().
 	config *config.Config
 	client *requests.Client
+
+	// initialized conditionally based on deployed environment
+	tlsEnabled bool
+	hostname   string
+	protocol   string
 }
 
 // New wires the HTTP server with its dependencies. Note we accept the
 // config and client from outside rather than constructing them here
 func New(addr string, conf *config.Config, client *requests.Client) *Server {
+
+	///// CONDITIONAL LOGIC BASED ON ENVIRONMENT
+	env := os.Getenv("ENVIRONMENT")
+	var tlsCert bool
+	var hostname string
+	var protocol string
+	switch env {
+	case "production":
+		protocol = "https"
+		hostname = "golang.monitoring.fiscalismia.com"
+		tlsCert = true
+	case "demo":
+		protocol = "https"
+		hostname = "golang.demo.fiscalismia.com"
+		tlsCert = true
+	default:
+		protocol = "http"
+		hostname = addr
+	}
+
 	s := &Server{
-		startTime: time.Now(),
-		config:    conf,
-		client:    client,
+		startTime:  time.Now(),
+		config:     conf,
+		client:     client,
+		tlsEnabled: tlsCert,
+		hostname:   hostname,
+		protocol:   protocol,
 	}
 
 	mux := http.NewServeMux()
@@ -44,7 +72,7 @@ func New(addr string, conf *config.Config, client *requests.Client) *Server {
 	// initialize empty TLS config
 	tlsConf := &tls.Config{}
 	// Seed TLS Config only on deployed environments
-	if env := os.Getenv("ENVIRONMENT"); env == "demo" || env == "production" {
+	if s.tlsEnabled {
 		slog.Debug("X509 serving Environment detected: Initializing TLS Config.")
 		cer, err := tls.LoadX509KeyPair("/etc/ssl/certs/fullchain.pem", "/etc/ssl/certs/privkey.pem")
 		if err != nil {
@@ -83,15 +111,21 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 }
 
 func (s *Server) Start() error {
-	slog.Info("http server listening",
-		"addr", s.httpServer.Addr,
+	slog.Info("["+s.protocol+"] server listening",
+		"addr", s.hostname,
 		"env", os.Getenv("ENVIRONMENT"),
 		"health", ROUTE_GOLANG_HEALTH,
 		"infra", ROUTE_FISCALISMIA_HEALTH,
 	)
-	if err := s.httpServer.ListenAndServe(); err != nil &&
-		!errors.Is(err, http.ErrServerClosed) {
-		return err
+	var startupError error
+	if s.tlsEnabled {
+		startupError = s.httpServer.ListenAndServeTLS("", "")
+	} else {
+		startupError = s.httpServer.ListenAndServe()
+	}
+	if startupError != nil &&
+		!errors.Is(startupError, http.ErrServerClosed) {
+		return startupError
 	}
 	return nil
 }
