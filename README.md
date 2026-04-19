@@ -39,6 +39,7 @@ make lint
 - Update go version in `golang/go.mod`
 - ??? Update dependencies in `golang/go.mod`
 - Update `GOLINT_V` podman version in `golang/Makefile`
+- Update `AIR_V` podman version in `golang/Makefile`
 - Update `version` in `Lint with golangci-lint` job in pipeline
 
 ### Testing

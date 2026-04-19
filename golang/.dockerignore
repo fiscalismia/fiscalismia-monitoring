@@ -1,15 +1,30 @@
-# Workflows
-.github/workflows
+# go project
+healthcheck
+.golangci.yml
+Makefile
+version.json
 
-.git
-.vscode
-
-#Snyk
-.dccache
+# air
+tmp/
 
 # dotenv environment variables file
 .env
-.env.template
+*.pem
+*.key
+.env*
 
-# python venv
-.venv
+# git
+.git
+.gitignore
+.vscode
+.claude
+
+# Snyk
+.dccache
+
+# Workflows
+.github/workflows/
+
+# Docker
+docker-compose*.yml
+Dockerfile*

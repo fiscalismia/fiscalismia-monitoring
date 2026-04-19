@@ -1,8 +1,5 @@
-# Usage: make <target>
-# Go convention: Makefiles are thin wrappers around go commands.
-# Unlike npm scripts, Go's toolchain is batteries-included, so
-# the Makefile mostly just saves you from remembering flags.
-GOLINT_V  := v2.11.4
+GOLINT_V  := v2.11.4 # https://github.com/golangci/golangci-lint
+AIR_V     := v1.65.1 # https://github.com/air-verse/air
 BINARY    := healthcheck
 CMD       := ./cmd/healthcheck/
 IMAGE     := ghcr.io/fiscalismia/fiscalismia-healthcheck
@@ -17,7 +14,7 @@ LDFLAGS   := -s -w \
             -X '$(PKG).BuildTime=$(BUILDTIME)'
 
 ## phony marks these commands as independent of files on the system .e.g. the healthcheck would otherwise not run if a healthcheck binary file is present
-.PHONY: tidy run lint fmt vet docker clean build execute server
+.PHONY: tidy run air lint fmt vet docker clean build execute server
 
 ## tidy: clean up go.mod and go.sum (run after adding/removing imports)
 tidy:
@@ -35,7 +32,7 @@ air:
 		-p 8445:8445 \
 		-e "HEALTHCHECK_ADDR=0.0.0.0:8445" \
     -e "ENVIRONMENT=air" \
-		docker.io/cosmtrek/air:v1.65.1 \
+		docker.io/cosmtrek/air:${AIR_V} \
 		-c "$(shell pwd)/.air.toml"
 
 ## lint: run golangci-lint with project config
