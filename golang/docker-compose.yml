@@ -8,20 +8,16 @@ volumes:
 
 services:
   fiscalismia-healthcheck:
-    image: fiscalismia-healthcheck-dev:latest
-    container_name: fiscalismia-healthcheck-dev
+    image: fiscalismia-healthcheck:latest
+    container_name: fiscalismia-healthcheck
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
       pull: true
     environment:
       HEALTHCHECK_ADDR: "0.0.0.0:8445"
-      ENVIRONMENT: "dev"
+      ENVIRONMENT: "demo"
     volumes:
-      # Mount golang source code for rebuild-on-restart workflow.
-      - ./cmd:/fiscalismia-monitoring/cmd:z
-      - ./internal:/fiscalismia-monitoring/internal:z
-      - ./targets.yml:/fiscalismia-monitoring/targets.yml:ro,z
       # Persist the Go build cache across container restarts to speed up performance
       - go-build-cache:/root/.cache/go-build
       - go-mod-cache:/go/pkg/mod

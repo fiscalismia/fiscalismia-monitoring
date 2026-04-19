@@ -1,6 +1,7 @@
 #     __               __
 #    |__) |  | | |    |  \
 #    |__) \__/ | |___ |__/
+FROM docker.io/library/golang:1.25.9-alpine AS build
 
 # initialize global scope build args by supplying --build-arg flag in podman build
 ARG VERSION
@@ -8,8 +9,6 @@ ARG COMMIT
 ARG BUILD_TIME
 ARG HEALTHCHECK_ADDR
 ARG ENVIRONMENT
-
-FROM docker.io/library/golang:1.25.9-alpine AS build
 
 WORKDIR /build-dir
 
@@ -38,8 +37,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 # they do not include libraries such as libc
 # they do however include ca certs, tzdata, a basic filesystem structure
 FROM --platform=linux/amd64 gcr.io/distroless/static-debian13:nonroot
+# RUN addgroup --gid 1001 --system gousr && adduser --system --no-create-home --uid 1001 --shell /sbin/nologin --ingroup gousr gousr
 
-WORKDIR /fiscalismia-monitoring-healthcheck
+WORKDIR /fiscalismia-healthcheck
 
 COPY --from=build /build-dir/targets.yml /build-dir/healthcheck ./
 
