@@ -5,12 +5,14 @@ import (
 	"crypto/tls"
 	"errors"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/requests"
+	"github.com/pires/go-proxyproto"
 )
 
 const (
@@ -66,9 +68,6 @@ func New(addr string, conf *config.Config, client *requests.Client) *Server {
 		protocol:   protocol,
 	}
 
-	mux := http.NewServeMux()
-	s.registerRoutes(mux)
-
 	// initialize empty TLS config
 	tlsConf := &tls.Config{}
 	// Seed TLS Config only on deployed environments
@@ -83,11 +82,14 @@ func New(addr string, conf *config.Config, client *requests.Client) *Server {
 		tlsConf.CurvePreferences = []tls.CurveID{tls.CurveP521, tls.CurveP384}
 	}
 
+	mux := http.NewServeMux()
+	s.registerRoutes(mux)
+
 	s.httpServer = &http.Server{
 		TLSConfig:         tlsConf,
 		Addr:              addr,
 		Handler:           mux,
-		ReadHeaderTimeout: 2 * time.Second,
+		ReadHeaderTimeout: 3 * time.Second,
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
@@ -117,10 +119,25 @@ func (s *Server) Start() error {
 		"health", ROUTE_GOLANG_HEALTH,
 		"infra", ROUTE_FISCALISMIA_HEALTH,
 	)
+
 	var startupError error
 	if s.tlsEnabled {
-		startupError = s.httpServer.ListenAndServeTLS("", "")
+		// DEPLOYED TLS HTTPS PROXY PROTOCOL V2 SERVER
+		ln, err := net.Listen("tcp", s.httpServer.Addr)
+		if err != nil {
+			slog.Error("Tcp listener startup failed:", "err", err)
+			os.Exit(1)
+		}
+
+		proxyListener := &proxyproto.Listener{
+			Listener:          ln,
+			ReadHeaderTimeout: 3 * time.Second,
+		}
+		defer proxyListener.Close()
+
+		startupError = s.httpServer.ServeTLS(proxyListener, "", "")
 	} else {
+		// HTTP SERVER FOR LOCAL DEVELOPMENT
 		startupError = s.httpServer.ListenAndServe()
 	}
 	if startupError != nil &&
