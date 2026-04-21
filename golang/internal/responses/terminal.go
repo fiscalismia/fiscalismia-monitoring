@@ -9,7 +9,7 @@ import (
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/requests"
 )
 
-func ASCII(results []requests.Result) string {
+func CURL(results []requests.Result) string {
 	var builder strings.Builder
 	header := fmt.Sprintf("%-20s %-6s %-6s %-10s %-14s %s", "NAME", "TYPE", "STATUS", "LATENCY", "TLS_VALID_DAYS", "DETAIL")
 	divider := strings.Repeat("─", len(header)*2)
@@ -41,19 +41,12 @@ func ASCII(results []requests.Result) string {
 			status,
 			r.Latency.Round(time.Millisecond),
 			r.X509Info.DaysUntilExpiry,
-			truncate(detail, 60),
+			detail,
 		)
 		builder.WriteString(line + "\n")
 	}
 	builder.WriteString(divider + "\n")
 
-	slog.Debug("Finished constructing ASCII response with", "lines", len(results))
+	slog.Debug("Finished constructing terminal response with", "lines", len(results))
 	return builder.String()
-}
-
-func truncate(s string, max int) string {
-	if len(s) <= max {
-		return s
-	}
-	return s[:max-3] + "..."
 }

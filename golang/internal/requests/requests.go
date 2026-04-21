@@ -79,17 +79,26 @@ func (c *Client) QueryHTTP(ctx context.Context, t *config.Target) Result {
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, READ_CAPACITY_BYTES))
-	latency := time.Since(start)
 	if err != nil {
-		return Result{Name: t.Name, URL: t.URL, Type: t.Type, StatusCode: resp.StatusCode, Latency: latency, Err: err}
+		errLatency := time.Since(start)
+		return Result{Name: t.Name, URL: t.URL, Type: t.Type, StatusCode: resp.StatusCode, Latency: errLatency, Err: err}
 	}
+	detail := string(body)
 
+	if strings.HasPrefix(detail, "<!doctype html>") {
+		// removes uneven and even whitespace with len > 1
+		// single whitespaces within html tags are retained
+		detail = strings.ReplaceAll(string(body), "   ", "")
+		detail = strings.ReplaceAll(string(body), "  ", "")
+		detail = strings.ReplaceAll(detail, "\n", "")
+	}
+	latency := time.Since(start)
 	return Result{
 		Name:       t.Name,
 		URL:        t.URL,
 		Type:       t.Type,
 		StatusCode: resp.StatusCode,
-		Body:       string(body),
+		Body:       detail,
 		Latency:    latency,
 	}
 }

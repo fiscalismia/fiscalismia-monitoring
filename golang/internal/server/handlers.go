@@ -59,10 +59,13 @@ func (s *Server) handleHealthcheck(w http.ResponseWriter, r *http.Request) {
 // every target from targets.yml and returns an ASCII status table.
 func (s *Server) handleInfrastructureHealth(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("GET request received to", "route", ROUTE_FISCALISMIA_HEALTH)
-	results := s.probeTargets(r.Context(), s.config.Targets.External)
+	results := []requests.Result{{Name: " EXTERNAL ", Type: "DIVIDER_CONTROL_SEQUENCE"}}
+	results = append(results, s.probeTargets(r.Context(), s.config.Targets.External)...)
 	if s.isRemote {
 		slog.Info("Remote Deployment detected. Running internal network probes...")
 		internal := s.probeTargets(r.Context(), s.config.Targets.Internal)
+		// adds a special type to check for in results to add a divider between External and Internal Targets
+		results = append(results, requests.Result{Name: " INTERNAL ", Type: "DIVIDER_CONTROL_SEQUENCE"})
 		results = append(results, internal...)
 	}
 	// r.Context() is cancelled if the client disconnects. Propagating
