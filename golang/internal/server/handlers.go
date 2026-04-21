@@ -74,7 +74,7 @@ func (s *Server) handleInfrastructureHealth(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	slog.Info("Sending ASCII response on invocation of", "path", r.URL.Path)
-	if _, err := io.WriteString(w, responses.ASCII(results)); err != nil {
+	if _, err := io.WriteString(w, responses.CURL(results)); err != nil {
 		slog.Error("write infrastructure response failed", "err", err)
 	}
 }
