@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/fiscalismia/fiscalismia-monitoring/internal/config"
@@ -31,6 +32,10 @@ type rootInfo struct {
 	Endpoint string `json:"endpoint"`
 	Health   string `json:"health"`
 }
+
+const (
+	TERMINAL_CLIENTS string = "curl wget go-http-client fetch python-requests powershell"
+)
 
 // handleHealthcheck is a cheap liveness probe — no outbound I/O.
 func (s *Server) handleHealthcheck(w http.ResponseWriter, r *http.Request) {
@@ -73,10 +78,30 @@ func (s *Server) handleInfrastructureHealth(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	slog.Info("Sending ASCII response on invocation of", "path", r.URL.Path)
-	if _, err := io.WriteString(w, responses.CURL(results)); err != nil {
-		slog.Error("write infrastructure response failed", "err", err)
+
+	// extract User Agent from request Header
+	headerMap := r.Header
+	userAgent := headerMap.Get("User-Agent")
+	if userAgent != "" {
+		var terminalClients []string = strings.Fields(TERMINAL_CLIENTS)
+		for _, client := range terminalClients {
+			if strings.Contains(strings.ToLower(userAgent), strings.ToLower(client)) {
+				slog.Info("User-agent is terminal client, formatting ANSI escape sequence...", "user-agent", userAgent, "path", r.URL.Path)
+				if _, err := io.WriteString(w, responses.CURL(results)); err != nil {
+					slog.Error("write terminal infrastructure response failed", "err", err)
+				}
+				return
+			}
+		}
+		slog.Debug("User-Agent not matched as any terminal client", "user-agent", userAgent)
+	} else {
+		slog.Warn("Failed to extract User-Agent from http Header")
 	}
+	slog.Info("Sending default ASCII response on invocation of", "path", r.URL.Path)
+	if _, err := io.WriteString(w, responses.ASCII(results)); err != nil {
+		slog.Error("write terminal infrastructure response failed", "err", err)
+	}
+
 }
 
 func (s *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {

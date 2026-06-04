@@ -17,8 +17,8 @@ import (
 
 const (
 	ROUTE_ROOT_INFO          string = "/"
-	ROUTE_GOLANG_HEALTH      string = "/goapi/fiscalismia/hc"
-	ROUTE_FISCALISMIA_HEALTH string = "/goapi/fiscalismia/infrastructure/health"
+	ROUTE_GOLANG_HEALTH      string = "/goapi/hc"
+	ROUTE_FISCALISMIA_HEALTH string = "/goapi/infra_hc"
 )
 
 type Server struct {
@@ -42,9 +42,9 @@ func New(addr string, conf *config.Config, client *requests.Client) *Server {
 
 	///// CONDITIONAL LOGIC BASED ON ENVIRONMENT
 	env := os.Getenv("ENVIRONMENT")
-	var remoteSrv bool
-	var hostname string
 	var protocol string
+	var hostname string
+	var remoteSrv bool
 	switch env {
 	case "production":
 		protocol = "https"
@@ -57,15 +57,16 @@ func New(addr string, conf *config.Config, client *requests.Client) *Server {
 	default:
 		protocol = "http"
 		hostname = addr
+		remoteSrv = false
 	}
 
 	s := &Server{
 		startTime: time.Now(),
 		config:    conf,
 		client:    client,
-		isRemote:  remoteSrv,
-		hostname:  hostname,
 		protocol:  protocol,
+		hostname:  hostname,
+		isRemote:  remoteSrv,
 	}
 
 	// initialize empty TLS config
@@ -99,6 +100,7 @@ func New(addr string, conf *config.Config, client *requests.Client) *Server {
 	return s
 }
 
+// private Server Struct Method to register endpoints to the multiplexer
 func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET "+ROUTE_ROOT_INFO, func(w http.ResponseWriter, r *http.Request) {
 		// sinkhols erroneous paths, root path is NOT a fallback, only exact matches get routed.
@@ -112,6 +114,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET "+ROUTE_FISCALISMIA_HEALTH, s.handleInfrastructureHealth)
 }
 
+// Public Server Struct Method invoking startup
 func (s *Server) Start() error {
 	slog.Info("["+s.protocol+"] server listening",
 		"addr", s.hostname,
@@ -147,7 +150,8 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// Public Server Struct Method invoking shutdown
 func (s *Server) Shutdown(ctx context.Context) error {
-	slog.Info("http server shutting down")
+	slog.Info("http server shutting down. Emitting error.")
 	return s.httpServer.Shutdown(ctx)
 }

@@ -75,6 +75,6 @@ func CURL(results []requests.Result) string {
 	}
 	builder.WriteString(divider + "\n")
 
-	slog.Debug("Finished constructing ASCII response with", "lines", len(results))
+	slog.Debug("Finished constructing ANSI escape sequence with", "lines", len(results))
 	return builder.String()
 }

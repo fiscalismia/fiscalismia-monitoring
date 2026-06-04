@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"log/slog"
 	"os"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 type TargetGroups struct {
@@ -23,9 +24,10 @@ type Target struct {
 }
 
 type Config struct {
-	GlobalTimeout time.Duration `yaml:"global_timeout"`
-	RootDomain    string        `yaml:"root_domain"`
-	Targets       TargetGroups  `yaml:"targets"`
+	GlobalTimeout   time.Duration `yaml:"global_timeout"`
+	RootDomain      string        `yaml:"root_domain"`
+	Targets         TargetGroups  `yaml:"targets"`
+	TerminalClients string        `yaml:"terminal_clients"`
 }
 
 func Load(path string) (*Config, error) {

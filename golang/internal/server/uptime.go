@@ -19,9 +19,9 @@ func readHostUptime() (time.Duration, error) {
 	if err != nil {
 		return 0, err
 	}
-	// Format: "<uptime_seconds> <idle_seconds>\n"
+	// Format: "<uptime_seconds> <idle_seconds accumulated per cpu core>\n"
 	fields := strings.Fields(string(data))
-	if len(fields) < 1 {
+	if len(fields) < 2 {
 		return 0, errors.New("unexpected /proc/uptime format")
 	}
 	seconds, err := strconv.ParseFloat(fields[0], 64)
