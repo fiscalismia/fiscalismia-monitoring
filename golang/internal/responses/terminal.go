@@ -80,11 +80,15 @@ func CURL(results []requests.Result) string {
 		// color type column conditionally
 		switch r.Type {
 		case "http":
-			typeOverride = paint(padWhitespace("https", TYPE_LENGTH), fgCyan)
+			if !strings.HasPrefix(r.URL, "https://") {
+				typeOverride = paint(padWhitespace("https", TYPE_LENGTH), bold, fgCyan)
+			} else {
+				typeOverride = paint(padWhitespace(r.Type, TYPE_LENGTH), fgCyan)
+			}
 		case "icmp":
-			typeOverride = paint(padWhitespace("icmp", TYPE_LENGTH), fgCyan)
+			typeOverride = paint(padWhitespace(r.Type, TYPE_LENGTH), fgCyan)
 		case "tcp":
-			typeOverride = paint(padWhitespace("tcp", TYPE_LENGTH), fgCyan)
+			typeOverride = paint(padWhitespace(r.Type, TYPE_LENGTH), fgCyan)
 		}
 
 		// color X509 validity days conditionally
