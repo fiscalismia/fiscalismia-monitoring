@@ -87,7 +87,11 @@ func (s *Server) handleInfrastructureHealth(w http.ResponseWriter, r *http.Reque
 		for _, client := range terminalClients {
 			if strings.Contains(strings.ToLower(userAgent), strings.ToLower(client)) {
 				slog.Info("User-agent is terminal client, formatting ANSI escape sequence...", "user-agent", userAgent, "path", r.URL.Path)
-				if _, err := io.WriteString(w, responses.CURL(results)); err != nil {
+				var showDetail bool
+				if strings.Contains(r.URL.Path, "/detail") {
+					showDetail = true
+				}
+				if _, err := io.WriteString(w, responses.CURL(results, showDetail)); err != nil {
 					slog.Error("write terminal infrastructure response failed", "err", err)
 				}
 				return

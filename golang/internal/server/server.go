@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	ROUTE_ROOT_INFO          string = "/"
-	ROUTE_GOLANG_HEALTH      string = "/goapi/hc"
-	ROUTE_FISCALISMIA_HEALTH string = "/goapi/infra_hc"
+	ROUTE_ROOT_INFO                   string = "/"
+	ROUTE_GOLANG_HEALTH               string = "/goapi/hc"
+	ROUTE_FISCALISMIA_HEALTH          string = "/goapi/infra_hc"
+	ROUTE_FISCALISMIA_HEALTH_DETAILED string = "/goapi/infra_hc/detail"
 )
 
 type Server struct {
@@ -112,6 +113,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	})
 	mux.HandleFunc("GET "+ROUTE_GOLANG_HEALTH, s.handleHealthcheck)
 	mux.HandleFunc("GET "+ROUTE_FISCALISMIA_HEALTH, s.handleInfrastructureHealth)
+	mux.HandleFunc("GET "+ROUTE_FISCALISMIA_HEALTH_DETAILED, s.handleInfrastructureHealth)
 }
 
 // Public Server Struct Method invoking startup

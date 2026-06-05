@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	CURL_DIVIDER_COUNT int    = 50
+	CURL_DIVIDER_COUNT int    = 60
 	CURL_DIVIDER_CHAR  string = "="
 	NAME_LENGTH               = 15
 	TYPE_LENGTH               = 6
@@ -22,7 +22,7 @@ const (
 	DETAIL_LENGTH             = 0
 )
 
-func CURL(results []requests.Result) string {
+func CURL(results []requests.Result, showDetail bool) string {
 	var builder strings.Builder
 	header := fmt.Sprintf("%-15s %-6s %-5s %-8s %-4s %s", "NAME", "TYPE", "STATI", "PING", "X509", "DETAIL")
 	divider := paint(strings.Repeat(CURL_DIVIDER_CHAR, CURL_DIVIDER_COUNT), fgBrBlack)
@@ -106,16 +106,25 @@ func CURL(results []requests.Result) string {
 				daysUntilCertificateExpiration = paint(padWhitespace(X509Builder.String(), X509_LENGTH), fgBrGreen)
 			}
 		} else {
-			slog.Debug("TLS Certificate fallback value detected in result. DaysUntilExpiry can be discarded")
+			slog.Debug("TLS Certificate fallback value detected in result. DaysUntilExpiry can be discarded", "type", r.Type)
 			daysUntilCertificateExpiration = paint(padWhitespace("n/a", X509_LENGTH), fgBrBlack)
 		}
+
+		// conditionally render detail string based on route
+		var detailStr string
+		if showDetail {
+			detailStr = truncate(detail, 60)
+		} else {
+			detailStr = paint("see /detail route", fgBrBlack)
+		}
+
 		line := fmt.Sprintf("%-15s %-6s %-5s %-8s %-4s %s",
 			padWhitespace(r.Name, NAME_LENGTH),
 			typeOverride,
 			status,
-			r.Latency.Round(time.Millisecond).String(),
+			padWhitespace(r.Latency.Round(time.Millisecond).String(), PING_LENGTH),
 			daysUntilCertificateExpiration,
-			truncate(detail, 40),
+			detailStr,
 		)
 		builder.WriteString(line + "\n")
 	}
@@ -127,7 +136,6 @@ func CURL(results []requests.Result) string {
 
 func padWhitespace(s string, padSize int) string {
 	curLength := utf8.RuneCountInString(s)
-	slog.Debug("Length of", "string", s, "length", curLength)
 	var builder strings.Builder
 	if curLength < padSize {
 		builder.WriteString(s)
