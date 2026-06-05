@@ -1,5 +1,5 @@
 # Todo List for [Fiscalismia Monitoring]
 
 ### High Prio
-- Remove continue-on-error: true in linting job
+- Remove continue-on-error: true in linting job and fix linting errors
 - remove tls_test on server startup
