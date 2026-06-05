@@ -108,7 +108,7 @@ func (s *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("root path request", "route", ROUTE_ROOT_INFO)
 	writeJSON(w, r.URL.Path, rootInfo{
 		Info:     "Fiscalismia Go HTTP monitoring server.",
-		Endpoint: "/goapi/fiscalismia/",
+		Endpoint: "/goapi/",
 		Health:   ROUTE_GOLANG_HEALTH,
 	})
 }
@@ -152,9 +152,10 @@ func (s *Server) probeOne(ctx context.Context, t config.Target) requests.Result 
 		return s.client.QueryICMP(ctx, &t)
 	default:
 		return requests.Result{
-			Name: t.Name,
-			Type: t.Type,
-			Err:  fmt.Errorf("unknown target type %q", t.Type),
+			Name:     t.Name,
+			Type:     t.Type,
+			X509Info: requests.X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: nil},
+			Err:      fmt.Errorf("unknown target type %q", t.Type),
 		}
 	}
 }

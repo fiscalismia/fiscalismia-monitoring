@@ -33,11 +33,11 @@ targets:
       type: http
       firewalled: true
 
-    - name: "Demo Golang Health"
+    - name: "Demo Golang"
       host: "172.20.0.2:8445"
       type: tcp
 
-    - name: "Demo Golang Health"
+    - name: "Demo Golang"
       host: "http://172.20.0.2:8445/goapi/fiscalismia/hc"
       type: http
       firewalled: true
@@ -75,7 +75,7 @@ targets:
       type: http
       x509_verify: true
 
-    - name: "Demo Golang Health"
+    - name: "Demo Golang"
       url:  "https://golang.demo.fiscalismia.com/goapi/fiscalismia/hc"
       type: http
       x509_verify: true

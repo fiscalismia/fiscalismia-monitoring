@@ -127,6 +127,7 @@ func (c *Client) QueryTCP(ctx context.Context, t *config.Target) Result {
 		Name:       t.Name,
 		Host:       t.Host,
 		Type:       t.Type,
+		X509Info:   X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: errors.New("Layer 4 TCP Protocol does not speak Layer 7 TLS Certificates.")},
 		StatusCode: 1,
 		Latency:    connLatency,
 	}
@@ -218,6 +219,7 @@ func (c *Client) QueryICMP(ctx context.Context, t *config.Target) Result {
 		Name:       t.Name,
 		Host:       t.Host,
 		Type:       t.Type,
+		X509Info:   X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: errors.New("ICMP Protocol does not speak TLS Certificates.")},
 		StatusCode: 1,
 		Latency:    latency,
 		Body:       responseBody,
