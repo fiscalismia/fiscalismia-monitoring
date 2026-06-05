@@ -76,7 +76,7 @@ targets:
       x509_verify: true
 
     - name: "Demo Golang"
-      url:  "https://golang.demo.fiscalismia.com/goapi/fiscalismia/hc"
+      url:  "https://golang.demo.fiscalismia.com/goapi/hc"
       type: http
       x509_verify: true
 
