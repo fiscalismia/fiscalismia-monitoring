@@ -10,14 +10,23 @@ targets:
       host: "172.20.0.2:443"
       type: tcp
 
-    - name: "Demo Frontend"
-      url: "http://172.20.0.2:443/login"
-      type: http
-      expect_failure: true
 
     - name: "Demo Backend"
       host: "172.20.0.2:8443"
       type: tcp
+
+    - name: "Demo WebScraper"
+      host:  "172.20.0.2:8444"
+      type: tcp
+
+    - name: "Demo Golang"
+      host: "172.20.0.2:8445"
+      type: tcp
+
+    - name: "Demo Frontend"
+      url: "http://172.20.0.2:443/login"
+      type: http
+      expect_failure: true
 
     - name: "Demo Backend"
       url: "http://172.20.0.2:8443/api/fiscalismia/hc"
@@ -25,20 +34,12 @@ targets:
       expect_failure: true
 
     - name: "Demo WebScraper"
-      host:  "172.20.0.2:8444"
-      type: tcp
-
-    - name: "Demo WebScraper"
       url: "http://172.20.0.2:8444/fastapi/fiscalismia/hc"
       type: http
       expect_failure: true
 
     - name: "Demo Golang"
-      host: "172.20.0.2:8445"
-      type: tcp
-
-    - name: "Demo Golang"
-      url: "http://172.20.0.2:8445/goapi/fiscalismia/hc"
+      url: "http://172.20.0.2:8445/goapi/hc"
       type: http
       expect_failure: true
 
@@ -85,10 +86,6 @@ targets:
       x509_verify: true
       type: http
 
-    - name: "Loadbalancer"
-      host: "46.225.239.49:443"
-      type: tcp
-
     # Demo instance does not have port 22 egress allowed in nftables, ping as fallback
     - name: "Bastion Host"
       host: "46.224.30.190"
@@ -97,3 +94,7 @@ targets:
     - name: "NAT Gateway"
       host: "49.13.166.73"
       type: icmp
+
+    - name: "Loadbalancer"
+      host: "46.225.239.49:443"
+      type: tcp

@@ -61,6 +61,15 @@ func CURL(results []requests.Result, showDetail bool) string {
 		}
 
 		detail := r.Body
+
+		// conditionally render detail string based on route
+		var detailStr string
+		if showDetail {
+			detailStr = truncate(detail, DETAIL_DEFAULT_TRUNCATION_NUM)
+		} else {
+			detailStr = paint("see /detail route", fgBrBlack)
+		}
+
 		// color status column conditionally
 		if r.Type == "http" && r.Err == nil {
 			switch r.StatusCode {
@@ -116,14 +125,6 @@ func CURL(results []requests.Result, showDetail bool) string {
 			daysUntilCertificateExpiration = paint(padWhitespace("-", X509_LENGTH), fgBrBlack)
 		}
 
-		// conditionally render detail string based on route
-		var detailStr string
-		if showDetail {
-			detailStr = truncate(detail, DETAIL_DEFAULT_TRUNCATION_NUM)
-		} else {
-			detailStr = paint("see /detail route", fgBrBlack)
-		}
-
 		// Final centralized Error exclusion handling to avoid having to handle errors for each column
 		if r.Err != nil {
 			if r.ExpectFail {
@@ -133,7 +134,7 @@ func CURL(results []requests.Result, showDetail bool) string {
 				if showDetail {
 					detailStr = truncate(r.Err.Error(), DETAIL_DEFAULT_TRUNCATION_NUM)
 				} else {
-					detailStr = paint("Failure expected.", fgBrBlack)
+					detailStr = paint("Failure expected.", fgBrMagenta)
 				}
 			} else {
 				slog.Warn("Unexpected Query Error encountered", "code", r.StatusCode, "url", r.URL, "host", r.Host, "type", r.Type)
