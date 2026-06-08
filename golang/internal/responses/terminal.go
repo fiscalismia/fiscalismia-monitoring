@@ -33,7 +33,7 @@ func CURL(results []requests.Result, showDetail bool) string {
 		var status string
 		var typeOverride string
 		var formattedName string
-		if r.Type == "DIVIDER_CONTROL_SEQUENCE" {
+		if r.Type == requests.TYPE_DIVIDER {
 			headerLength := utf8.RuneCountInString(r.Name)
 			if r.Name == " EXTERNAL " {
 				formattedName = paint(r.Name, bold, fgBlack, bgBrYellow)
@@ -48,6 +48,13 @@ func CURL(results []requests.Result, showDetail bool) string {
 				continue
 			}
 			builder.WriteString(halfDivider + formattedName + halfDivider + "\n")
+			continue
+		} else if r.Type == requests.TYPE_QUERY_DURATION {
+			queryDurationStr := ("query duration: " + r.Latency.Round(time.Millisecond).String())
+			durationStrLen := utf8.RuneCountInString(queryDurationStr)
+			// paint after length count to avoid adding escape sequence runes
+			queryDurationStr = paint(strings.Repeat(" ", CURL_DIVIDER_COUNT-durationStrLen)+queryDurationStr+"\n", fgBlue)
+			builder.WriteString(queryDurationStr)
 			continue
 		}
 
@@ -80,15 +87,15 @@ func CURL(results []requests.Result, showDetail bool) string {
 		// color type column conditionally
 		switch r.Type {
 		case "http":
-			if !strings.HasPrefix(r.URL, "https://") {
-				typeOverride = paint(padWhitespace("https", TYPE_LENGTH), bold, fgCyan)
+			if strings.HasPrefix(r.URL, "https://") {
+				typeOverride = paint(padWhitespace("https", TYPE_LENGTH), fgCyan)
 			} else {
-				typeOverride = paint(padWhitespace(r.Type, TYPE_LENGTH), fgCyan)
+				typeOverride = paint(padWhitespace(r.Type, TYPE_LENGTH), fgBrCyan)
 			}
 		case "icmp":
-			typeOverride = paint(padWhitespace(r.Type, TYPE_LENGTH), fgCyan)
+			typeOverride = paint(padWhitespace(r.Type, TYPE_LENGTH), fgBrCyan)
 		case "tcp":
-			typeOverride = paint(padWhitespace(r.Type, TYPE_LENGTH), fgCyan)
+			typeOverride = paint(padWhitespace(r.Type, TYPE_LENGTH), fgBrCyan)
 		}
 
 		// color X509 validity days conditionally

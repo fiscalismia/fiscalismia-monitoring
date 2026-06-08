@@ -22,6 +22,8 @@ import (
 
 const (
 	READ_CAPACITY_BYTES int64 = 1024
+	TYPE_DIVIDER              = "divider_control_seq"
+	TYPE_QUERY_DURATION       = "query_duration_control_seq"
 )
 
 type Result struct {

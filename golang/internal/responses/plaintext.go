@@ -25,7 +25,7 @@ func ASCII(results []requests.Result) string {
 
 	for _, r := range results {
 		var status string
-		if r.Type == "DIVIDER_CONTROL_SEQUENCE" {
+		if r.Type == requests.TYPE_DIVIDER {
 			headerLength := utf8.RuneCountInString(r.Name)
 			halfDivider := strings.Repeat(PLAINTEXT_DIVIDER_CHARACTER, PLAINTEXT_DIVIDER_COUNT/2-headerLength/2)
 			if PLAINTEXT_DIVIDER_COUNT%2 == 1 {

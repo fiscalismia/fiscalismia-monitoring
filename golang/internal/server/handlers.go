@@ -64,13 +64,13 @@ func (s *Server) handleHealthcheck(w http.ResponseWriter, r *http.Request) {
 // every target from targets.yml and returns an ASCII status table.
 func (s *Server) handleInfrastructureHealth(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("GET request received to", "route", ROUTE_FISCALISMIA_HEALTH)
-	results := []requests.Result{{Name: " EXTERNAL ", Type: "DIVIDER_CONTROL_SEQUENCE"}}
+	results := []requests.Result{{Name: " EXTERNAL ", Type: requests.TYPE_DIVIDER}}
 	results = append(results, s.probeTargets(r.Context(), s.config.Targets.External)...)
 	if s.isRemote {
 		slog.Info("Remote Deployment detected. Running internal network probes...")
 		internal := s.probeTargets(r.Context(), s.config.Targets.Internal)
 		// adds a special type to check for in results to add a divider between External and Internal Targets
-		results = append(results, requests.Result{Name: " INTERNAL ", Type: "DIVIDER_CONTROL_SEQUENCE"})
+		results = append(results, requests.Result{Name: " INTERNAL ", Type: requests.TYPE_DIVIDER})
 		results = append(results, internal...)
 	}
 	// r.Context() is cancelled if the client disconnects. Propagating
@@ -108,6 +108,7 @@ func (s *Server) handleInfrastructureHealth(w http.ResponseWriter, r *http.Reque
 
 }
 
+// rootpath handler signaling correct endpoints to user
 func (s *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("root path request", "route", ROUTE_ROOT_INFO)
 	writeJSON(w, r.URL.Path, rootInfo{
@@ -132,9 +133,11 @@ func (s *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 // probeOne below both stay untouched. That's the boundary.
 func (s *Server) probeTargets(ctx context.Context, targets []config.Target) []requests.Result {
 	results := make([]requests.Result, 0, len(targets))
+	start := time.Now()
 	for _, t := range targets {
 		results = append(results, s.probeOne(ctx, t))
 	}
+	results = append(results, requests.Result{Latency: time.Since(start), Type: requests.TYPE_QUERY_DURATION})
 	return results
 }
 
