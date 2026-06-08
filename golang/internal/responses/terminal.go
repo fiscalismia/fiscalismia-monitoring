@@ -12,22 +12,26 @@ import (
 )
 
 const (
-	CURL_DIVIDER_COUNT            int    = 60
-	DETAIL_DEFAULT_TRUNCATION_NUM int    = 50
-	DETAIL_ERROR_TRUNCATION_NUM   int    = 90
-	CURL_DIVIDER_CHAR             string = "="
-	NAME_LENGTH                          = 15
-	TYPE_LENGTH                          = 6
-	STATUS_LENGTH                        = 5
-	PING_LENGTH                          = 8
-	X509_LENGTH                          = 4
-	DETAIL_LENGTH                        = 0
+	CURL_DIVIDER_CHAR           string = "="
+	NAME_LENGTH                 int    = 15
+	TYPE_LENGTH                 int    = 6
+	STATUS_LENGTH               int    = 5
+	PING_LENGTH                 int    = 8
+	X509_LENGTH                 int    = 4
+	DETAIL_DEFAULT_LENGTH       int    = 17
+	DETAIL_TRUNCATION_NUM       int    = 50
+	DETAIL_ERROR_TRUNCATION_NUM int    = 90
 )
 
 func CURL(results []requests.Result, showDetail bool) string {
 	var builder strings.Builder
 	header := fmt.Sprintf("%-15s %-6s %-5s %-8s %-4s %s", "NAME", "TYPE", "STATI", "PING", "X509", "DETAIL")
-	divider := paint(strings.Repeat(CURL_DIVIDER_CHAR, CURL_DIVIDER_COUNT), fgBrBlack)
+	// dynamically compute header length (+ add padding for whitespace between Columns)
+	dividerCount := NAME_LENGTH + TYPE_LENGTH + STATUS_LENGTH + PING_LENGTH + X509_LENGTH + DETAIL_DEFAULT_LENGTH + 5
+	if showDetail {
+		dividerCount = dividerCount + DETAIL_TRUNCATION_NUM - DETAIL_DEFAULT_LENGTH
+	}
+	divider := paint(strings.Repeat(CURL_DIVIDER_CHAR, dividerCount), fgBrBlack)
 
 	builder.WriteString(divider + "\n")
 	builder.WriteString(header + "\n")
@@ -42,10 +46,10 @@ func CURL(results []requests.Result, showDetail bool) string {
 			} else {
 				formattedName = paint(r.Name, bold, fgBlack, bgBrCyan)
 			}
-			halfDivider := paint(strings.Repeat(CURL_DIVIDER_CHAR, CURL_DIVIDER_COUNT/2-headerLength/2), fgBrBlack)
-			if CURL_DIVIDER_COUNT%2 == 1 {
+			halfDivider := paint(strings.Repeat(CURL_DIVIDER_CHAR, dividerCount/2-headerLength/2), fgBrBlack)
+			if dividerCount%2 == 1 {
 				// add an extra character for uneven divider count
-				endDivider := paint(strings.Repeat(CURL_DIVIDER_CHAR, CURL_DIVIDER_COUNT/2-headerLength/2+1), fgBrBlack)
+				endDivider := paint(strings.Repeat(CURL_DIVIDER_CHAR, dividerCount/2-headerLength/2+1), fgBrBlack)
 				builder.WriteString(halfDivider + formattedName + endDivider + "\n")
 				continue
 			}
@@ -55,7 +59,7 @@ func CURL(results []requests.Result, showDetail bool) string {
 			queryDurationStr := ("query duration: " + r.Latency.Round(time.Millisecond).String())
 			durationStrLen := utf8.RuneCountInString(queryDurationStr)
 			// paint after length count to avoid adding escape sequence runes
-			queryDurationStr = paint(strings.Repeat(" ", CURL_DIVIDER_COUNT-durationStrLen)+queryDurationStr+"\n", fgBlue)
+			queryDurationStr = paint(strings.Repeat(" ", dividerCount-durationStrLen)+queryDurationStr+"\n", fgBlue)
 			builder.WriteString(queryDurationStr)
 			continue
 		}
@@ -65,7 +69,7 @@ func CURL(results []requests.Result, showDetail bool) string {
 		// conditionally render detail string based on route
 		var detailStr string
 		if showDetail {
-			detailStr = truncate(detail, DETAIL_DEFAULT_TRUNCATION_NUM)
+			detailStr = truncate(detail, DETAIL_TRUNCATION_NUM)
 		} else {
 			detailStr = paint("see /detail route", fgBrBlack)
 		}
@@ -132,7 +136,7 @@ func CURL(results []requests.Result, showDetail bool) string {
 				status = paint(padWhitespace("DROP", STATUS_LENGTH), fgBrMagenta)
 				daysUntilCertificateExpiration = paint(padWhitespace("n/a", X509_LENGTH), fgBrBlack)
 				if showDetail {
-					detailStr = truncate(r.Err.Error(), DETAIL_DEFAULT_TRUNCATION_NUM)
+					detailStr = truncate(r.Err.Error(), DETAIL_TRUNCATION_NUM)
 				} else {
 					detailStr = paint("Failure expected.", fgBrMagenta)
 				}
