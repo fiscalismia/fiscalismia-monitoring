@@ -159,10 +159,11 @@ func (s *Server) probeOne(ctx context.Context, t config.Target) requests.Result 
 		return s.client.QueryICMP(ctx, &t)
 	default:
 		return requests.Result{
-			Name:     t.Name,
-			Type:     t.Type,
-			X509Info: requests.X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: nil},
-			Err:      fmt.Errorf("unknown target type %q", t.Type),
+			Name:       t.Name,
+			Type:       t.Type,
+			ExpectFail: t.ExpectFail,
+			X509Info:   requests.X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: nil},
+			Err:        fmt.Errorf("unknown target type %q", t.Type),
 		}
 	}
 }

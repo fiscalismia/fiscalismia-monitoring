@@ -12,14 +12,16 @@ import (
 )
 
 const (
-	CURL_DIVIDER_COUNT int    = 60
-	CURL_DIVIDER_CHAR  string = "="
-	NAME_LENGTH               = 15
-	TYPE_LENGTH               = 6
-	STATUS_LENGTH             = 5
-	PING_LENGTH               = 8
-	X509_LENGTH               = 4
-	DETAIL_LENGTH             = 0
+	CURL_DIVIDER_COUNT            int    = 60
+	DETAIL_DEFAULT_TRUNCATION_NUM int    = 50
+	DETAIL_ERROR_TRUNCATION_NUM   int    = 90
+	CURL_DIVIDER_CHAR             string = "="
+	NAME_LENGTH                          = 15
+	TYPE_LENGTH                          = 6
+	STATUS_LENGTH                        = 5
+	PING_LENGTH                          = 8
+	X509_LENGTH                          = 4
+	DETAIL_LENGTH                        = 0
 )
 
 func CURL(results []requests.Result, showDetail bool) string {
@@ -59,10 +61,6 @@ func CURL(results []requests.Result, showDetail bool) string {
 		}
 
 		detail := r.Body
-		if r.Err != nil {
-			status = paint(padWhitespace("Error", STATUS_LENGTH), fgBrRed)
-			detail = r.Err.Error()
-		}
 		// color status column conditionally
 		if r.Type == "http" && r.Err == nil {
 			switch r.StatusCode {
@@ -84,6 +82,7 @@ func CURL(results []requests.Result, showDetail bool) string {
 		} else {
 			status = paint(padWhitespace("n/a", STATUS_LENGTH), bold, fgBrYellow)
 		}
+
 		// color type column conditionally
 		switch r.Type {
 		case "http":
@@ -114,15 +113,37 @@ func CURL(results []requests.Result, showDetail bool) string {
 			}
 		} else {
 			slog.Debug("TLS Certificate fallback value detected in result. DaysUntilExpiry can be discarded", "type", r.Type)
-			daysUntilCertificateExpiration = paint(padWhitespace("n/a", X509_LENGTH), fgBrBlack)
+			daysUntilCertificateExpiration = paint(padWhitespace("-", X509_LENGTH), fgBrBlack)
 		}
 
 		// conditionally render detail string based on route
 		var detailStr string
 		if showDetail {
-			detailStr = truncate(detail, 60)
+			detailStr = truncate(detail, DETAIL_DEFAULT_TRUNCATION_NUM)
 		} else {
 			detailStr = paint("see /detail route", fgBrBlack)
+		}
+
+		// Final centralized Error exclusion handling to avoid having to handle errors for each column
+		if r.Err != nil {
+			if r.ExpectFail {
+				slog.Debug("Expected Query Error encountered", "code", r.StatusCode, "url", r.URL, "host", r.Host, "type", r.Type)
+				status = paint(padWhitespace("DROP", STATUS_LENGTH), fgBrMagenta)
+				daysUntilCertificateExpiration = paint(padWhitespace("n/a", X509_LENGTH), fgBrBlack)
+				if showDetail {
+					detailStr = truncate(r.Err.Error(), DETAIL_DEFAULT_TRUNCATION_NUM)
+				} else {
+					detailStr = paint("Failure expected.", fgBrBlack)
+				}
+			} else {
+				slog.Warn("Unexpected Query Error encountered", "code", r.StatusCode, "url", r.URL, "host", r.Host, "type", r.Type)
+				status = paint(padWhitespace("ERR", STATUS_LENGTH), bold, fgRed)
+				if showDetail {
+					detailStr = truncate(r.Err.Error(), DETAIL_ERROR_TRUNCATION_NUM)
+				} else {
+					detailStr = paint("/detail for error", fgBrBlack)
+				}
+			}
 		}
 
 		line := fmt.Sprintf("%-15s %-6s %-5s %-8s %-4s %s",

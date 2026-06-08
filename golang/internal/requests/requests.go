@@ -34,6 +34,7 @@ type Result struct {
 	StatusCode int
 	Body       string
 	Latency    time.Duration
+	ExpectFail bool
 	X509Info   X509CertificateValidity
 	Err        error
 }
@@ -71,19 +72,19 @@ func (c *Client) QueryHTTP(ctx context.Context, t *config.Target) Result {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.URL, nil)
 	if err != nil {
-		return Result{Name: t.Name, URL: t.URL, Type: t.Type, Err: err}
+		return Result{Name: t.Name, URL: t.URL, Type: t.Type, ExpectFail: t.ExpectFail, Err: err}
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
 		errLatency := time.Since(start)
-		return Result{Name: t.Name, URL: t.URL, Type: t.Type, Latency: errLatency, Err: err}
+		return Result{Name: t.Name, URL: t.URL, Type: t.Type, Latency: errLatency, ExpectFail: t.ExpectFail, Err: err}
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, READ_CAPACITY_BYTES))
 	if err != nil {
 		errLatency := time.Since(start)
-		return Result{Name: t.Name, URL: t.URL, Type: t.Type, StatusCode: resp.StatusCode, Latency: errLatency, Err: err}
+		return Result{Name: t.Name, URL: t.URL, Type: t.Type, StatusCode: resp.StatusCode, Latency: errLatency, ExpectFail: t.ExpectFail, Err: err}
 	}
 	detail := string(body)
 
@@ -99,6 +100,7 @@ func (c *Client) QueryHTTP(ctx context.Context, t *config.Target) Result {
 		Name:       t.Name,
 		URL:        t.URL,
 		Type:       t.Type,
+		ExpectFail: t.ExpectFail,
 		StatusCode: resp.StatusCode,
 		Body:       detail,
 		Latency:    latency,
@@ -120,7 +122,7 @@ func (c *Client) QueryTCP(ctx context.Context, t *config.Target) Result {
 	conn, err := dialer.DialContext(ctx, "tcp", t.Host)
 	if err != nil {
 		errLatency := time.Since(start)
-		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: errLatency, Err: err}
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: errLatency, ExpectFail: t.ExpectFail, Err: err}
 	}
 	defer conn.Close()
 	connLatency := time.Since(start)
@@ -129,6 +131,7 @@ func (c *Client) QueryTCP(ctx context.Context, t *config.Target) Result {
 		Name:       t.Name,
 		Host:       t.Host,
 		Type:       t.Type,
+		ExpectFail: t.ExpectFail,
 		X509Info:   X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: errors.New("layer 4 TCP Protocol does not speak Layer 7 TLS Certificates")},
 		StatusCode: 1,
 		Latency:    connLatency,
@@ -144,7 +147,7 @@ func (c *Client) QueryICMP(ctx context.Context, t *config.Target) Result {
 	// /proc/sys/net/ipv4/ping_group_range needs to read "0       2147483647" on host
 	conn, err := icmp.ListenPacket("udp4", "0.0.0.0")
 	if err != nil {
-		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Err: err}
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, ExpectFail: t.ExpectFail, Err: err}
 	}
 	defer conn.Close()
 
@@ -177,14 +180,14 @@ func (c *Client) QueryICMP(ctx context.Context, t *config.Target) Result {
 	// Marshaling serializes the actual method into bytes for packet transmission
 	wb, err := msg.Marshal(nil)
 	if err != nil {
-		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Err: err}
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, ExpectFail: t.ExpectFail, Err: err}
 	}
 
 	// the unprivileged ICMP mode used UDP4 socket-address types
 	dst := &net.UDPAddr{IP: net.ParseIP(t.Host)}
 	// sends the byte encoded icmp packet to the target host
 	if _, err := conn.WriteTo(wb, dst); err != nil {
-		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Err: err}
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, ExpectFail: t.ExpectFail, Err: err}
 	}
 
 	// allocates a 1500 byte read buffer (Ethernet Maximum Transmission Unit (MTU))
@@ -192,7 +195,7 @@ func (c *Client) QueryICMP(ctx context.Context, t *config.Target) Result {
 	n, addr, err := conn.ReadFrom(rb)
 	latency := time.Since(start)
 	if err != nil {
-		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency, Err: err}
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency, ExpectFail: t.ExpectFail, Err: err}
 	}
 	if !strings.Contains(addr.String(), t.Host) {
 		slog.Warn("Source Address not contained in icmp response.")
@@ -202,7 +205,7 @@ func (c *Client) QueryICMP(ctx context.Context, t *config.Target) Result {
 	// rb[:n] is reading the amount of bytes received
 	parsed, err := icmp.ParseMessage(1, rb[:n])
 	if err != nil {
-		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency, Err: err}
+		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency, ExpectFail: t.ExpectFail, Err: err}
 	}
 	if parsed.Type != ipv4.ICMPTypeEchoReply {
 		return Result{Name: t.Name, Host: t.Host, Type: t.Type, Latency: latency,
@@ -221,6 +224,7 @@ func (c *Client) QueryICMP(ctx context.Context, t *config.Target) Result {
 		Name:       t.Name,
 		Host:       t.Host,
 		Type:       t.Type,
+		ExpectFail: t.ExpectFail,
 		X509Info:   X509CertificateValidity{IsValid: false, DaysUntilExpiry: -1, Err: errors.New("ICMP Protocol does not speak TLS Certificates")},
 		StatusCode: 1,
 		Latency:    latency,

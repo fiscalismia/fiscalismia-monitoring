@@ -20,6 +20,7 @@ type Target struct {
 	Host       string        `yaml:"host"`
 	Type       string        `yaml:"type"`
 	X509Verify bool          `yaml:"x509_verify"`
+	ExpectFail bool          `yaml:"expect_failure"`
 	Timeout    time.Duration `yaml:"timeout,omitempty"`
 }
 
