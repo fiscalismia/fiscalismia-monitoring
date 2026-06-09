@@ -49,7 +49,7 @@ func (s *Server) handleHealthcheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := healthResponse{
-		Status:       "ok",
+		Status:       "OK",
 		Version:      version.Version,
 		Commit:       version.Commit,
 		BuildTime:    version.BuildTime,
