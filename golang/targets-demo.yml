@@ -29,12 +29,12 @@ targets:
       expect_failure: true
 
     - name: "Demo Backend"
-      url: "http://172.20.0.2:8443/api/fiscalismia/hc"
+      url: "http://172.20.0.2:8443/api/hc"
       type: http
       expect_failure: true
 
     - name: "Demo WebScraper"
-      url: "http://172.20.0.2:8444/fastapi/fiscalismia/hc"
+      url: "http://172.20.0.2:8444/fastapi/hc"
       type: http
       expect_failure: true
 
@@ -67,12 +67,12 @@ targets:
       x509_verify: true
 
     - name: "Demo Backend"
-      url:  "https://backend.demo.fiscalismia.com/api/fiscalismia/hc"
+      url:  "https://backend.demo.fiscalismia.com/api/hc"
       type: http
       x509_verify: true
 
     - name: "Demo WebScraper"
-      url:  "https://fastapi.demo.fiscalismia.com/fastapi/fiscalismia/hc"
+      url:  "https://fastapi.demo.fiscalismia.com/fastapi/hc"
       type: http
       x509_verify: true
 
@@ -82,7 +82,7 @@ targets:
       x509_verify: true
 
     - name: "Demo Postgres"
-      url:  "https://backend.demo.fiscalismia.com/api/fiscalismia/db_hc"
+      url:  "https://backend.demo.fiscalismia.com/api/db_hc"
       x509_verify: true
       type: http
 
