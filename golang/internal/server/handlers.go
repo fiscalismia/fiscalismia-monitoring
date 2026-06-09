@@ -20,6 +20,7 @@ import (
 type healthResponse struct {
 	Status       string `json:"status"`
 	Version      string `json:"version"`
+	Service      string `json:"service"`
 	Commit       string `json:"commit"`
 	BuildTime    string `json:"build_time"`
 	Environment  string `json:"environment"`
@@ -51,6 +52,7 @@ func (s *Server) handleHealthcheck(w http.ResponseWriter, r *http.Request) {
 	resp := healthResponse{
 		Status:       "OK",
 		Version:      version.Version,
+		Service:      "fiscalismia-monitoring",
 		Commit:       version.Commit,
 		BuildTime:    version.BuildTime,
 		Environment:  os.Getenv("ENVIRONMENT"),
